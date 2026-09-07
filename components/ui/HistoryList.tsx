@@ -8,6 +8,7 @@ const TYPE_META: Record<string, { icon: string; label: string }> = {
   purchase: { icon: '💳', label: 'Purchase' },
   use_ai: { icon: '🤖', label: 'AI Coach' },
   use_plan: { icon: '📋', label: 'Workout Plan' },
+  refund: { icon: '↩️', label: 'Refund' },
 }
 
 export function HistoryList({ transactions }: { transactions: AppTransaction[] }) {

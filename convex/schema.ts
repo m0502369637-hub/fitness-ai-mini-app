@@ -22,6 +22,7 @@ export default defineSchema({
       v.literal("purchase"),
       v.literal("use_ai"),
       v.literal("use_plan"),
+      v.literal("refund"),
     ),
     description: v.optional(v.string()),
     pointsAfter: v.number(), // running balance after this entry (audit trail)
@@ -81,6 +82,7 @@ export default defineSchema({
     telegramPaymentChargeId: v.optional(v.string()),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
+    refundedAt: v.optional(v.number()),
   })
     .index("by_payload", ["payload"])
     .index("by_userId", ["userId"]),

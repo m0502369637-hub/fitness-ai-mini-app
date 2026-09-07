@@ -1,7 +1,7 @@
 // Shared app-level types. These intentionally mirror the Convex document shapes
 // so the demo (in-memory) and real (Convex) data providers can share one interface.
 
-export type TransactionType = "welcome" | "purchase" | "use_ai" | "use_plan";
+export type TransactionType = "welcome" | "purchase" | "use_ai" | "use_plan" | "refund";
 
 export interface AppUser {
   _id: string;

@@ -33,3 +33,14 @@ export const getUser = query({
     return await ctx.db.get(userId);
   },
 });
+
+/** Look a user up by their Telegram id (used by admin tooling, e.g. refunds). */
+export const getByTgId = query({
+  args: { tgId: v.string() },
+  handler: async (ctx, { tgId }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_tgId", (q) => q.eq("tgId", tgId))
+      .first();
+  },
+});
