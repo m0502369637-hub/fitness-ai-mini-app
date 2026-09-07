@@ -14,7 +14,7 @@ export interface PlanExercise {
   secondaryMuscles: string[];
   equipment?: string;
   level?: string;
-  image: string;
+  images: string[];
   instructions: string[];
   sets: number;
   reps: string;
@@ -54,7 +54,7 @@ function toPlanExercise(e: CatalogExercise, sets: number, reps: string): PlanExe
     secondaryMuscles: e.secondaryMuscles,
     equipment: e.equipment ?? undefined,
     level: e.level ?? undefined,
-    image: e.image,
+    images: e.images,
     instructions: e.instructions,
     sets,
     reps,

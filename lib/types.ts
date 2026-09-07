@@ -32,7 +32,7 @@ export interface AppExercise {
   secondaryMuscles?: string[];
   equipment?: string;
   level?: string;
-  image?: string;
+  images?: string[];
   instructions?: string[];
 }
 

@@ -16,6 +16,7 @@ import clsx from 'clsx'
 import { useAppData } from '@/lib/appDataContext'
 import { useHaptic } from '@/hooks/useHaptic'
 import { PLAN_COST } from '@/convex/lib/constants'
+import { findCatalogExercise } from '@/convex/lib/exercises'
 import { AppExercise, AppExerciseLog, AppPlanDay, GeneratedPlan } from '@/lib/types'
 
 const GOALS = ['Muscle gain', 'Fat loss', 'Endurance', 'General fitness']
@@ -305,23 +306,39 @@ function ExerciseRow({
   onToggle: (completed: boolean) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const muscles = [ex.primaryMuscles?.join(', '), ex.secondaryMuscles?.join(', ')]
-    .filter(Boolean)
-    .join(' · ')
+
+  // Resolve rich media for this exercise. New plans carry images/instructions
+  // inline; older plans (or demo data) fall back to a catalog lookup by id/name.
+  const cat = findCatalogExercise(ex.exerciseId ?? ex.name)
+  const images = ex.images && ex.images.length > 0 ? ex.images : (cat?.images ?? [])
+  const instructions =
+    ex.instructions && ex.instructions.length > 0
+      ? ex.instructions
+      : (cat?.instructions ?? [])
+  const muscles =
+    [ex.primaryMuscles?.join(', '), ex.secondaryMuscles?.join(', ')]
+      .filter(Boolean)
+      .join(' · ') ||
+    (cat
+      ? [cat.primaryMuscles.join(', '), cat.secondaryMuscles.join(', ')].filter(Boolean).join(' · ')
+      : '') ||
+    ex.equipment ||
+    (cat?.equipment ?? '') ||
+    'Exercise'
 
   return (
     <div className="rounded-xl bg-[var(--c-surface-2)] p-3" style={{ border: '1px solid var(--c-border)' }}>
       <div className="flex items-center gap-3">
-        {/* Image */}
+        {/* Image (first frame) */}
         <button
           onClick={() => setExpanded((e) => !e)}
           className="relative w-16 h-16 shrink-0 rounded-xl bg-[var(--c-surface)] overflow-hidden"
         >
           <Dumbbell size={20} className="absolute inset-0 m-auto text-[var(--c-muted)]" />
-          {ex.image && (
+          {images[0] && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={ex.image}
+              src={images[0]}
               alt=""
               loading="lazy"
               className="absolute inset-0 w-full h-full object-cover"
@@ -330,6 +347,11 @@ function ExerciseRow({
               }}
             />
           )}
+          {images.length > 1 && (
+            <span className="absolute bottom-0 right-0 px-1 py-0.5 text-[9px] font-bold bg-black/60 text-white rounded-tl">
+              +{images.length - 1}
+            </span>
+          )}
         </button>
 
         {/* Details */}
@@ -337,9 +359,7 @@ function ExerciseRow({
           <p className={clsx('font-bold text-sm', done ? 'text-[var(--c-muted)] line-through' : 'text-[var(--c-text)]')}>
             {ex.name}
           </p>
-          <p className="text-[11px] text-[var(--c-muted)] truncate">
-            {muscles || ex.equipment || 'Exercise'}
-          </p>
+          <p className="text-[11px] text-[var(--c-muted)] truncate">{muscles}</p>
           <p className="text-[11px] font-semibold text-[var(--c-accent)]">
             {ex.sets} × {ex.reps}
           </p>
@@ -360,13 +380,46 @@ function ExerciseRow({
         </button>
       </div>
 
-      {/* Instructions */}
-      {expanded && ex.instructions && ex.instructions.length > 0 && (
-        <ol className="mt-3 pt-3 space-y-1.5 text-xs text-[var(--c-muted)] list-decimal list-inside" style={{ borderTop: '1px solid var(--c-border)' }}>
-          {ex.instructions.map((step, i) => (
-            <li key={i}>{step}</li>
-          ))}
-        </ol>
+      {/* How-to: all form frames + numbered instructions */}
+      {expanded && (
+        <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid var(--c-border)' }}>
+          {images.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--c-muted)] mb-2">
+                How to do it
+              </p>
+              <div
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${Math.min(images.length, 3)}, minmax(0, 1fr))` }}
+              >
+                {images.map((src, i) => (
+                  <div
+                    key={i}
+                    className="relative aspect-square rounded-lg overflow-hidden bg-[var(--c-surface)]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={`${ex.name} — form ${i + 1}`}
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {instructions.length > 0 && (
+            <ol className="space-y-1.5 text-xs text-[var(--c-muted)] list-decimal list-inside">
+              {instructions.map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ol>
+          )}
+        </div>
       )}
     </div>
   )

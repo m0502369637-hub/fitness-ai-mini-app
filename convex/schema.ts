@@ -52,7 +52,7 @@ export default defineSchema({
             secondaryMuscles: v.optional(v.array(v.string())),
             equipment: v.optional(v.string()),
             level: v.optional(v.string()),
-            image: v.optional(v.string()),
+            images: v.optional(v.array(v.string())),
             instructions: v.optional(v.array(v.string())),
           }),
         ),

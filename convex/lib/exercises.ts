@@ -1,7 +1,8 @@
 // convex/lib/exercises.ts
 // Curated exercise catalog vendored from the public-domain free-exercise-db
 // (https://github.com/yuhonas/free-exercise-db) — Unlicense.
-// Images are served from the library's GitHub-hosted assets.
+// Images are served from the jsDelivr CDN mirror of the library's GitHub assets
+// for fast, reliable loading inside the Telegram Mini App webview.
 
 export interface CatalogExercise {
   id: string;
@@ -11,7 +12,7 @@ export interface CatalogExercise {
   primaryMuscles: string[];
   secondaryMuscles: string[];
   instructions: string[];
-  image: string;
+  images: string[];
 }
 
 export type ExerciseGroup = "push" | "pull" | "legs" | "core" | "cardio";
@@ -37,7 +38,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement for the prescribed amount of repetitions.",
         "When you are done, place the bar back in the rack."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg"
+      ]
     },
     {
       "id": "Pushups",
@@ -57,7 +61,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Now breathe out and press your upper body back up to the starting position while squeezing your chest.",
         "After a brief pause at the top contracted position, you can begin to lower yourself downward again for as many repetitions as needed."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pushups/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pushups/1.jpg"
+      ]
     },
     {
       "id": "Incline_Dumbbell_Press",
@@ -80,7 +87,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement for the prescribed amount of repetitions.",
         "When you are done, place the dumbbells back on your thighs and then on the floor. This is the safest manner to release the dumbbells."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Press/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Incline_Dumbbell_Press/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Incline_Dumbbell_Press/1.jpg"
+      ]
     },
     {
       "id": "Cable_Crossover",
@@ -100,7 +110,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Return your arms back to the starting position as you breathe out. Make sure to use the same arc of motion used to lower the weights.",
         "Hold for a second at the starting position and repeat the movement for the prescribed amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crossover/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crossover/1.jpg"
+      ]
     },
     {
       "id": "Dips_-_Chest_Version",
@@ -120,7 +133,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Once you feel the stretch, use your chest to bring your body back to the starting position as you breathe out. Tip: Remember to squeeze the chest at the top of the movement for a second.",
         "Repeat the movement for the prescribed amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Dips_-_Chest_Version/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Dips_-_Chest_Version/1.jpg"
+      ]
     },
     {
       "id": "Standing_Military_Press",
@@ -141,7 +157,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Lift the bar back up to the starting position as you exhale.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Military_Press/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Standing_Military_Press/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Standing_Military_Press/1.jpg"
+      ]
     },
     {
       "id": "Side_Lateral_Raise",
@@ -158,7 +177,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Lower the dumbbells back down slowly to the starting position as you inhale.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Side_Lateral_Raise/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Side_Lateral_Raise/1.jpg"
+      ]
     },
     {
       "id": "Front_Dumbbell_Raise",
@@ -175,7 +197,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Now lower the dumbbell back down slowly to the starting position as you simultaneously lift the right dumbbell.",
         "Continue alternating in this fashion until all of the recommended amount of repetitions have been performed for each arm."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Dumbbell_Raise/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Dumbbell_Raise/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Dumbbell_Raise/1.jpg"
+      ]
     },
     {
       "id": "Face_Pull",
@@ -191,7 +216,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
       "instructions": [
         "Facing a high pulley with a rope or dual handles attached, pull the weight directly towards your face, separating your hands as you do so. Keep your upper arms parallel to the ground."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Face_Pull/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Face_Pull/1.jpg"
+      ]
     },
     {
       "id": "Triceps_Pushdown",
@@ -209,7 +237,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "After a second hold at the contracted position, bring the bar slowly up to the starting point. Breathe in as you perform this step.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Triceps_Pushdown/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Triceps_Pushdown/1.jpg"
+      ]
     }
   ],
   "pull": [
@@ -232,7 +263,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "After a second on the contracted position, start to inhale and slowly lower your torso back to the starting position when your arms are fully extended and the lats are fully stretched.",
         "Repeat this motion for the prescribed amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pullups/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pullups/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pullups/1.jpg"
+      ]
     },
     {
       "id": "Full_Range-Of-Motion_Lat_Pulldown",
@@ -251,7 +285,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Either standing or seated on a high bench, grasp two stirrup cables that are attached to the high pulleys. Grab with the opposing hand so your arms are crisscrossed about you and your palms are facing forward.",
         "Keeping your chest up and maintaining a slight arch in your lower back, pull the handles down as if you were doing a regular pulldown. The range of motion will be more of an arc. During the movement, rotate your hands so that in the bottom position your palms face each other rather than forward. Return slowly to the starting position and repeat."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Full_Range-Of-Motion_Lat_Pulldown/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Full_Range-Of-Motion_Lat_Pulldown/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Full_Range-Of-Motion_Lat_Pulldown/1.jpg"
+      ]
     },
     {
       "id": "Bent_Over_Barbell_Row",
@@ -272,7 +309,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Then inhale and slowly lower the barbell back to the starting position.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bent_Over_Barbell_Row/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bent_Over_Barbell_Row/1.jpg"
+      ]
     },
     {
       "id": "Seated_Cable_Rows",
@@ -294,7 +334,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Keeping the torso stationary, pull the handles back towards your torso while keeping the arms close to it until you touch the abdominals. Breathe out as you perform that movement. At that point you should be squeezing your back muscles hard. Hold that contraction for a second and slowly go back to the original position while breathing in.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Seated_Cable_Rows/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Seated_Cable_Rows/1.jpg"
+      ]
     },
     {
       "id": "One-Arm_Dumbbell_Row",
@@ -318,7 +361,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement for the specified amount of repetitions.",
         "Switch sides and repeat again with the other arm."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Dumbbell_Row/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Dumbbell_Row/1.jpg"
+      ]
     },
     {
       "id": "Barbell_Curl",
@@ -338,7 +384,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Slowly begin to bring the bar back to starting position as your breathe in.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Curl/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Curl/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Curl/1.jpg"
+      ]
     },
     {
       "id": "Alternate_Hammer_Curl",
@@ -359,7 +408,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement with the left hand. This equals one repetition.",
         "Continue alternating in this manner for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Hammer_Curl/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Alternate_Hammer_Curl/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Alternate_Hammer_Curl/1.jpg"
+      ]
     }
   ],
   "legs": [
@@ -385,7 +437,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin to raise the bar as you exhale by pushing the floor with the heel or middle of your foot as you straighten the legs and extend the hips to go back to the starting position.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Full_Squat/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Full_Squat/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Full_Squat/1.jpg"
+      ]
     },
     {
       "id": "Front_Squat_Clean_Grip",
@@ -406,7 +461,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Bend at the knees, sitting down between your legs. Continue down until your hamstrings are on your calves. Keep your knees aligned with your feet by consciously using your abductors to push your knees out as you squat.",
         "Begin to raise the bar as you exhale by pushing the floor mainly with the heel or middle of your foot as you straighten the legs again and return to the starting position."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Squat_Clean_Grip/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Squat_Clean_Grip/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Squat_Clean_Grip/1.jpg"
+      ]
     },
     {
       "id": "Leg_Press",
@@ -428,7 +486,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Pushing mainly with the heels of your feet and using the quadriceps go back to the starting position as you exhale.",
         "Repeat for the recommended amount of repetitions and ensure to lock the safety pins properly once you are done. You do not want that platform falling on you fully loaded."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Press/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Press/1.jpg"
+      ]
     },
     {
       "id": "Romanian_Deadlift",
@@ -450,7 +511,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Once you are standing completely straight up, lower the bar by pushing the hips back, only slightly bending the knees, unlike when squatting. Tip: Take a deep breath at the start of the movement and keep your chest up. Hold your breath as you lower and exhale as you complete the movement.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Romanian_Deadlift/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Romanian_Deadlift/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Romanian_Deadlift/1.jpg"
+      ]
     },
     {
       "id": "Barbell_Walking_Lunge",
@@ -471,7 +535,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Drive through the heel of your lead foot and extend both knees to raise yourself back up.",
         "Step forward with your rear foot, repeating the lunge on the opposite leg."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Walking_Lunge/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Walking_Lunge/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Walking_Lunge/1.jpg"
+      ]
     },
     {
       "id": "Leg_Extensions",
@@ -488,7 +555,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Slowly lower the weight back to the original position as you inhale, ensuring that you do not go past the 90-degree angle limit.",
         "Repeat for the recommended amount of times."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Extensions/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Extensions/1.jpg"
+      ]
     },
     {
       "id": "Lying_Leg_Curls",
@@ -505,7 +575,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "As you exhale, curl your legs up as far as possible without lifting the upper legs from the pad. Once you hit the fully contracted position, hold it for a second.",
         "As you inhale, bring the legs back to the initial position. Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Lying_Leg_Curls/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Lying_Leg_Curls/1.jpg"
+      ]
     },
     {
       "id": "Barbell_Seated_Calf_Raise",
@@ -524,7 +597,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "After a second contraction, slowly go back to the starting position. Tip: To get maximum benefit stretch your calves as far as you can.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Seated_Calf_Raise/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Seated_Calf_Raise/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Seated_Calf_Raise/1.jpg"
+      ]
     },
     {
       "id": "Barbell_Glute_Bridge",
@@ -543,7 +619,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin the movement by driving through with your heels, extending your hips vertically through the bar. Your weight should be supported by your upper back and the heels of your feet.",
         "Extend as far as possible, then reverse the motion to return to the starting position."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Glute_Bridge/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Glute_Bridge/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Glute_Bridge/1.jpg"
+      ]
     }
   ],
   "core": [
@@ -560,7 +639,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Get into a prone position on the floor, supporting your weight on your toes and your forearms. Your arms are bent and directly below the shoulder.",
         "Keep your body straight at all times, and hold this position as long as possible. To increase difficulty, an arm or leg can be raised."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Plank/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Plank/1.jpg"
+      ]
     },
     {
       "id": "Cable_Crunch",
@@ -579,7 +661,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Slowly return to the starting position as you inhale. Tip: Make sure that you keep constant tension on the abs throughout the movement. Also, do not choose a weight so heavy that the lower back handles the brunt of the work.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crunch/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crunch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crunch/1.jpg"
+      ]
     },
     {
       "id": "Hanging_Leg_Raise",
@@ -596,7 +681,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Go back slowly to the starting position as you breathe in.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Hanging_Leg_Raise/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Hanging_Leg_Raise/1.jpg"
+      ]
     },
     {
       "id": "Russian_Twist",
@@ -616,7 +704,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Hold the contraction for a second and move back to the starting position while breathing out. Now move to the opposite side performing the same techniques you applied to the right side.",
         "Repeat for the recommended amount of repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Russian_Twist/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Russian_Twist/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Russian_Twist/1.jpg"
+      ]
     }
   ],
   "cardio": [
@@ -637,7 +728,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Crunch to the opposite side as you cycle your legs and bring closer your left elbow to your right knee and exhale.",
         "Continue alternating in this manner until all of the recommended repetitions for each side have been completed."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Air_Bike/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Air_Bike/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Air_Bike/1.jpg"
+      ]
     },
     {
       "id": "Battling_Ropes",
@@ -657,7 +751,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "As you let that arm drop to the starting position, raise the opposite side.",
         "Continue alternating your left and right arms, whipping the ropes up and down as fast as you can."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Battling_Ropes/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Battling_Ropes/1.jpg"
+      ]
     },
     {
       "id": "Mountain_Climbers",
@@ -676,7 +773,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin in a pushup position, with your weight supported by your hands and toes. Flexing the knee and hip, bring one leg until the knee is approximately under the hip. This will be your starting position.",
         "Explosively reverse the positions of your legs, extending the bent leg until the leg is straight and supported by the toe, and bringing the other foot up with the hip and knee flexed. Repeat in an alternating fashion for 20-30 seconds."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climbers/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Mountain_Climbers/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Mountain_Climbers/1.jpg"
+      ]
     },
     {
       "id": "One-Arm_Kettlebell_Swings",
@@ -693,7 +793,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "shoulders"
       ],
       "instructions": [],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Kettlebell_Swings/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Kettlebell_Swings/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Kettlebell_Swings/1.jpg"
+      ]
     },
     {
       "id": "Goblet_Squat",
@@ -714,7 +817,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Squat down between your legs until your hamstrings are on your calves. Keep your chest and head up and your back straight.",
         "At the bottom position, pause and use your elbows to push your knees out. Return to the starting position, and repeat for 10-20 repetitions."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Goblet_Squat/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Goblet_Squat/1.jpg"
+      ]
     },
     {
       "id": "Rowing_Stationary",
@@ -737,7 +843,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "There are three phases of movement when using a rower. The first phase is when you come forward on the rower. Your knees are bent and against your chest. Your upper body is leaning slightly forward while still maintaining good posture. Next, push against the foot pedals and extend your legs while bringing your hands to your upper abdominal area, squeezing your shoulders back as you do so. To avoid straining your back, use primarily your leg and hip muscles.",
         "The recovery phase simply involves straightening your arms, bending the knees, and bringing your body forward again as you transition back into the first phase."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rowing_Stationary/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Rowing_Stationary/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Rowing_Stationary/1.jpg"
+      ]
     },
     {
       "id": "Bodyweight_Squat",
@@ -756,7 +865,66 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin the movement by flexing your knees and hips, sitting back with your hips.",
         "Continue down to full depth if you are able,and quickly reverse the motion until you return to the starting position. As you squat, keep your head and chest up and push your knees out."
       ],
-      "image": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg"
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bodyweight_Squat/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bodyweight_Squat/1.jpg"
+      ]
     }
   ]
 };
+
+// Flat list of every catalogued exercise, used for client-side lookups when a
+// saved plan predates the exercise library (no exerciseId/images stored).
+export const ALL_EXERCISES: CatalogExercise[] = [
+  ...EXERCISE_CATALOG.push,
+  ...EXERCISE_CATALOG.pull,
+  ...EXERCISE_CATALOG.legs,
+  ...EXERCISE_CATALOG.core,
+  ...EXERCISE_CATALOG.cardio,
+];
+
+// Display names used by the very first (pre-library) plan generator, mapped to
+// catalog ids so older plans can still resolve images + instructions.
+export const LEGACY_NAME_TO_ID: Record<string, string> = {
+  "Back Squat": "Barbell_Full_Squat",
+  "Romanian Deadlift": "Romanian_Deadlift",
+  "Walking Lunges": "Barbell_Walking_Lunge",
+  "Leg Press": "Leg_Press",
+  "Calf Raises": "Barbell_Seated_Calf_Raise",
+  "Bench Press": "Barbell_Bench_Press_-_Medium_Grip",
+  "Overhead Press": "Standing_Military_Press",
+  "Incline Dumbbell Press": "Incline_Dumbbell_Press",
+  "Lateral Raises": "Side_Lateral_Raise",
+  "Triceps Pushdown": "Triceps_Pushdown",
+  "Pull-ups / Lat Pulldown": "Pullups",
+  "Barbell Row": "Bent_Over_Barbell_Row",
+  "Seated Cable Row": "Seated_Cable_Rows",
+  "Face Pulls": "Face_Pull",
+  "Biceps Curl": "Barbell_Curl",
+  "Plank": "Plank",
+  "Hanging Leg Raise": "Hanging_Leg_Raise",
+  "Cable Crunch": "Cable_Crunch",
+  "Russian Twist": "Russian_Twist",
+  "Goblet Squat": "Goblet_Squat",
+  "Push-ups": "Pushups",
+  "Dumbbell Row": "One-Arm_Dumbbell_Row",
+  "Glute Bridge": "Barbell_Glute_Bridge",
+  "Incline Walk": "Walking_Treadmill",
+  "Intervals (run / bike)": "Rowing_Stationary",
+  "Steady State": "Elliptical_Trainer",
+};
+
+// Resolve a catalogued exercise from an exerciseId, a display name, or a legacy
+// pre-library name. Returns null when nothing matches.
+export function findCatalogExercise(query?: string): CatalogExercise | null {
+  if (!query) return null;
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  const byId = ALL_EXERCISES.find((e) => e.id.toLowerCase() === q);
+  if (byId) return byId;
+  const byName = ALL_EXERCISES.find((e) => e.name.toLowerCase() === q);
+  if (byName) return byName;
+  const legacyId = LEGACY_NAME_TO_ID[query];
+  if (legacyId) return ALL_EXERCISES.find((e) => e.id === legacyId) ?? null;
+  return null;
+}
