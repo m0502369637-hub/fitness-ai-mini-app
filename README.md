@@ -113,6 +113,17 @@ curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
   -d '{"url":"https://<ngrok-or-domain>/api/telegram/webhook","secret_token":"<TELEGRAM_BOT_SECRET_TOKEN>"}'
 ```
 
+## Refunds (Telegram Stars)
+
+Admin-only, driven from the bot chat:
+
+1. Set `ADMIN_TG_ID` to your Telegram user id (get it from @userinfobot) in Vercel env.
+2. In the bot chat, send **`/refund <tgId>`** — the bot replies with a button per refundable
+   purchase (a purchase can only be refunded if the user still holds the purchased points).
+3. Tap the button → the webhook calls Telegram's `refundStarPayment`, then Convex deducts
+   the points, marks the payment `refunded`, and writes a `-N Refund (Stars)` ledger entry.
+   The user sees "↩️ Refund" in their point history and the balance updates reactively.
+
 ## Demo mode
 
 If `NEXT_PUBLIC_CONVEX_URL` is unset, or the app is opened outside Telegram, it runs with
