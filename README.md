@@ -3,9 +3,8 @@
 A Telegram Mini App that combines an **AI coach** and **custom workout plans** with a
 **points-based economy** and **Telegram Stars (XTR) payments**.
 
-- **Frontend:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 — built on the
-  [Telekit](https://github.com/nikandr-surkov/telekit) foundation (Telegram WebApp provider,
-  theme variables, types).
+- **Frontend:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 — a
+  dark, chartreuse-accented fitness UI designed for Telegram Mini Apps.
 - **Backend:** [Convex](https://convex.dev) — realtime database, serverless functions,
   reactive `useQuery`-driven UI.
 
@@ -15,9 +14,15 @@ A Telegram Mini App that combines an **AI coach** and **custom workout plans** w
 | --- | --- |
 | Onboarding + welcome bonus | First launch registers the user and credits **50 points** (idempotent, single mutation). |
 | Points economy | AI Coach = **5 pts**/query · Workout plan = **15 pts**/generation. Balance is checked & debited atomically server-side. |
+| English UI | Dark, high-contrast fitness dashboard with a chartreuse accent — greeting, stat cards, weekly activity chart, and a "create plan" CTA. |
 | Telegram Stars payments | Point packages (50 pts / 10 ⭐, 150 pts / 25 ⭐). Invoice via Bot API, payment verified via the `successful_payment` webhook. |
-| Dashboard | Live balance, point-history ledger, saved plans — all reactive via Convex queries. |
-| Theming | `Telegram.WebApp.themeParams` drives CSS variables; light/dark adapt automatically. |
+| Refunds | Admin `/refund <tgId>` command in the bot chat → `refundStarPayment` + points reversal with a `↩️ Refund` history entry. |
+| AI Coach | Chat-style coaching in the Coach tab; each query costs 5 points; mock AI behind a swappable interface. |
+| Workout plans | Goal + level generator in the Plan tab (15 pts), plans saved to Convex and shown live, with a "current plan" card on Home. |
+| Progress dashboard | Home tracks points, plans, workouts, coach calls, and a weekly activity bar chart built from real transactions. |
+| Wallet & history | Profile shows balance, buy-points card, feature shortcuts, and the full point-history ledger. |
+| Live balance | Convex reactive queries update points/balance in real time across screens. |
+| Light/dark | Dark brand theme by default; a light variant applies for Telegram light theme. |
 | Demo mode | Outside Telegram or without Convex, the app runs on in-memory data so the UI is previewable in a browser. |
 
 ## Architecture
@@ -137,11 +142,3 @@ To use a real model, replace `mockCoachResponse` / `generateMockPlan` with a cal
 provider (OpenAI, Claude, DeepSeek, etc.) inside a Convex **action** (actions may call
 `fetch`), then call that action from `convex/points.ts`. Points charging and history remain
 unchanged.
-
-## License note
-
-This project is built on the [Telekit](https://github.com/nikandr-surkov/telekit) boilerplate.
-Telekit's README states MIT, but its individual source files carry a
-"Proprietary — may ONLY be used if purchased" header. **Resolve this ambiguity before shipping**
-and either obtain a Telekit license or replace the retained Telekit files
-(`providers/TelegramProvider.tsx`, `store/telegram.ts`, `types/telegram.d.ts`, `hooks/useHaptic.ts`).

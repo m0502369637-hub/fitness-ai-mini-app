@@ -52,7 +52,7 @@ function createMockWebApp(): TelegramWebApp {
         initDataUnsafe: { user: mockUser },
         version: '8.0',
         platform: 'web',
-        colorScheme: 'light',
+        colorScheme: 'dark',
         themeParams: MOCK_THEME,
         isExpanded: true,
         viewportHeight: 800,
@@ -150,7 +150,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         } else {
             // Browser preview fallback
             const mock = createMockWebApp()
-            document.documentElement.className = 'light'
+            document.documentElement.className = 'dark'
 
             setWebAppState(mock)
             setUserState(mock.initDataUnsafe.user || null)

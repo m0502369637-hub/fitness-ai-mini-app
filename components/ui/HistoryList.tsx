@@ -14,12 +14,12 @@ const TYPE_META: Record<string, { icon: string; label: string }> = {
 export function HistoryList({ transactions }: { transactions: AppTransaction[] }) {
   if (transactions.length === 0) {
     return (
-      <p className="text-sm text-[var(--tg-theme-hint-color)] text-center py-6">No activity yet.</p>
+      <p className="text-sm text-[var(--c-muted)] text-center py-6">No activity yet.</p>
     )
   }
 
   return (
-    <ul className="divide-y divide-black/5 dark:divide-white/5">
+    <ul className="divide-y" style={{ borderColor: 'var(--c-border)' }}>
       {transactions.map((t) => {
         const meta = TYPE_META[t.type] ?? { icon: '•', label: t.type }
         const positive = t.amount > 0
@@ -27,14 +27,16 @@ export function HistoryList({ transactions }: { transactions: AppTransaction[] }
           <li key={t._id} className="flex items-center gap-3 py-3">
             <span className="text-lg w-7 text-center">{meta.icon}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{t.description ?? meta.label}</p>
-              <p className="text-xs text-[var(--tg-theme-hint-color)]">{formatTimestamp(t.timestamp)}</p>
+              <p className="text-sm font-semibold text-[var(--c-text)] truncate">
+                {t.description ?? meta.label}
+              </p>
+              <p className="text-xs text-[var(--c-muted)]">{formatTimestamp(t.timestamp)}</p>
             </div>
             <span
               className={
                 positive
-                  ? 'text-emerald-500 font-semibold'
-                  : 'text-[var(--tg-theme-text-color)] font-semibold'
+                  ? 'text-[var(--c-accent)] font-bold'
+                  : 'text-[var(--c-text)] font-bold'
               }
             >
               {positive ? '+' : ''}

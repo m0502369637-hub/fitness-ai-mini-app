@@ -37,13 +37,23 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-[var(--tg-theme-secondary-bg-color)] p-4 space-y-3">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--c-muted)]">
+          Workout Plans
+        </p>
+        <h1 className="text-2xl font-extrabold text-[var(--c-text)]">Build your plan</h1>
+      </div>
+
+      <div className="card p-4 space-y-3">
         <label className="block">
-          <span className="text-xs font-medium text-[var(--tg-theme-hint-color)]">Goal</span>
+          <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
+            Goal
+          </span>
           <select
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
-            className="mt-1 w-full p-3 rounded-xl bg-[var(--tg-theme-bg-color)] text-sm outline-none"
+            className="mt-1 w-full p-3 rounded-xl bg-[var(--c-surface-2)] text-[var(--c-text)] text-sm outline-none"
+            style={{ border: '1px solid var(--c-border)' }}
           >
             {GOALS.map((g) => (
               <option key={g}>{g}</option>
@@ -52,11 +62,14 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
         </label>
 
         <label className="block">
-          <span className="text-xs font-medium text-[var(--tg-theme-hint-color)]">Level</span>
+          <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
+            Level
+          </span>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
-            className="mt-1 w-full p-3 rounded-xl bg-[var(--tg-theme-bg-color)] text-sm outline-none"
+            className="mt-1 w-full p-3 rounded-xl bg-[var(--c-surface-2)] text-[var(--c-text)] text-sm outline-none"
+            style={{ border: '1px solid var(--c-border)' }}
           >
             {LEVELS.map((l) => (
               <option key={l}>{l}</option>
@@ -67,7 +80,7 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
         <button
           onClick={generate}
           disabled={loading}
-          className="btn-primary w-full flex items-center justify-center gap-2 py-3"
+          className="btn-accent w-full flex items-center justify-center gap-2 py-3"
         >
           <Sparkles size={16} />
           {loading ? 'Generating…' : `Generate plan (${PLAN_COST} pts)`}
@@ -78,7 +91,7 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
 
       {plans.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-semibold">Saved plans</h3>
+          <h3 className="font-bold text-[var(--c-text)]">Saved plans</h3>
           {plans.map((p) => (
             <PlanCard key={p._id} plan={p} />
           ))}
@@ -90,22 +103,22 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
 
 function PlanCard({ plan }: { plan: GeneratedPlan | AppPlan }) {
   return (
-    <div className="rounded-2xl bg-[var(--tg-theme-secondary-bg-color)] p-4">
-      <h4 className="font-semibold flex items-center gap-2">
-        <Dumbbell size={16} className="text-[var(--tg-theme-button-color)]" />
+    <div className="card p-4">
+      <h4 className="font-extrabold text-[var(--c-text)] flex items-center gap-2">
+        <Dumbbell size={16} className="text-[var(--c-accent)]" />
         {plan.title}
       </h4>
       <div className="mt-3 space-y-3">
         {plan.days.map((d, i) => (
           <div key={i}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--tg-theme-hint-color)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--c-accent)]">
               {d.day}
             </p>
             <ul className="mt-1 space-y-1">
               {d.exercises.map((ex, j) => (
-                <li key={j} className="flex justify-between text-sm">
+                <li key={j} className="flex justify-between text-sm text-[var(--c-text)]">
                   <span>{ex.name}</span>
-                  <span className="text-[var(--tg-theme-hint-color)]">
+                  <span className="text-[var(--c-muted)]">
                     {ex.sets} × {ex.reps}
                   </span>
                 </li>

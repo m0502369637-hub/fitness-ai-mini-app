@@ -5,24 +5,20 @@ import { formatPoints } from '@/lib/telegram'
 
 export function BalanceCard({ balance, onBuy }: { balance: number; onBuy: () => void }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-white/80 uppercase tracking-wide">Your balance</p>
-          <p className="text-3xl font-bold mt-1 flex items-center gap-2">
-            <Zap size={22} className="fill-white/20" />
-            {formatPoints(balance)}
-          </p>
-          <p className="text-xs text-white/70 mt-0.5">points</p>
-        </div>
-        <button
-          onClick={onBuy}
-          className="flex items-center gap-1.5 bg-white text-emerald-600 font-semibold text-sm px-4 py-2.5 rounded-xl active:scale-95 transition"
-        >
-          <Plus size={16} />
-          Buy
-        </button>
-      </div>
+    <div className="rounded-2xl p-5 bg-[var(--c-accent)] text-[var(--c-accent-text)] shadow-lg">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">Your balance</p>
+      <p className="text-3xl font-extrabold mt-1 flex items-center gap-2">
+        <Zap size={22} className="opacity-70" />
+        {formatPoints(balance)}
+        <span className="text-sm font-bold opacity-70">pts</span>
+      </p>
+      <button
+        onClick={onBuy}
+        className="mt-3 flex items-center gap-1.5 bg-[var(--c-accent-text)] text-[var(--c-accent)] font-bold text-sm px-4 py-2.5 rounded-xl active:scale-95 transition"
+      >
+        <Plus size={16} />
+        Add points
+      </button>
     </div>
   )
 }

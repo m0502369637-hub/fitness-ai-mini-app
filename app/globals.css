@@ -1,47 +1,55 @@
 @import "tailwindcss";
 
-/* ---- Telegram theme variables with sane defaults ----
-   Telegram's web-app script overwrites these inside a real Mini App. The
-   defaults below make the browser/demo preview render a sensible light theme.
--------------------------------------------------------- */
-:root {
-  --telegram-blue: #0088cc;
-
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #1c1c1e;
-  --tg-theme-hint-color: #8e8e93;
-  --tg-theme-link-color: #2481cc;
-  --tg-theme-button-color: #2481cc;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f2f2f7;
-  --tg-theme-header-bg-color: #ffffff;
-  --tg-theme-accent-text-color: #2481cc;
-  --tg-theme-section-bg-color: #ffffff;
-  --tg-theme-section-header-text-color: #6d6d72;
-  --tg-theme-subtitle-text-color: #8e8e93;
-  --tg-theme-destructive-text-color: #ff3b30;
-}
-
+/* ---- Brand palette (dark-first fitness theme, chartreuse accent) ----
+   The app is a dark-branded design. `.light` provides a readable fallback so
+   users whose Telegram theme is light still get a coherent (light) variant.
+----------------------------------------------------------------------- */
+:root,
 .dark {
   color-scheme: dark;
 
-  --tg-theme-bg-color: #17212b;
-  --tg-theme-text-color: #f5f5f5;
-  --tg-theme-hint-color: #708499;
-  --tg-theme-link-color: #6ab2f2;
-  --tg-theme-button-color: #5288c1;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #232e3c;
-  --tg-theme-header-bg-color: #17212b;
-  --tg-theme-accent-text-color: #6ab2f2;
-  --tg-theme-section-bg-color: #17212b;
-  --tg-theme-section-header-text-color: #708499;
-  --tg-theme-subtitle-text-color: #708499;
-  --tg-theme-destructive-text-color: #ff3b30;
+  --c-bg: #0c0c0f;
+  --c-surface: #17171c;
+  --c-surface-2: #21212a;
+  --c-border: rgba(255, 255, 255, 0.08);
+  --c-text: #ffffff;
+  --c-muted: #9b9ba6;
+  --c-accent: #d7f26d;
+  --c-accent-text: #0b0c0e;
+  --c-accent-soft: rgba(215, 242, 109, 0.14);
+  --c-danger: #ff5a5f;
+
+  /* Telegram aliases (kept so Telegram-var classes stay sensible) */
+  --tg-theme-bg-color: var(--c-bg);
+  --tg-theme-secondary-bg-color: var(--c-surface);
+  --tg-theme-text-color: var(--c-text);
+  --tg-theme-hint-color: var(--c-muted);
+  --tg-theme-link-color: var(--c-accent);
+  --tg-theme-button-color: var(--c-accent);
+  --tg-theme-button-text-color: var(--c-accent-text);
 }
 
 .light {
   color-scheme: light;
+
+  --c-bg: #f4f4f6;
+  --c-surface: #ffffff;
+  --c-surface-2: #ececf1;
+  --c-border: rgba(0, 0, 0, 0.08);
+  --c-text: #121216;
+  --c-muted: #6b6b76;
+  --c-accent: #c3e14a;
+  --c-accent-text: #0b0c0e;
+  --c-accent-soft: rgba(195, 225, 74, 0.18);
+  --c-danger: #e5484d;
+
+  --tg-theme-bg-color: var(--c-bg);
+  --tg-theme-secondary-bg-color: var(--c-surface);
+  --tg-theme-text-color: var(--c-text);
+  --tg-theme-hint-color: var(--c-muted);
+  --tg-theme-link-color: var(--c-accent);
+  --tg-theme-button-color: var(--c-accent);
+  --tg-theme-button-text-color: var(--c-accent-text);
 }
 
 /* Custom scrollbar */
@@ -49,41 +57,41 @@
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: var(--tg-theme-secondary-bg-color);
+  background: var(--c-bg);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--tg-theme-hint-color);
+  background: var(--c-surface-2);
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--tg-theme-text-color);
+  background: var(--c-accent);
 }
 
-/* Button styles */
 @layer components {
-  .btn-primary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 active:scale-95;
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
+  .card {
+    background-color: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 1.25rem;
   }
 
-  .btn-primary:hover {
-    opacity: 0.9;
+  .btn-accent {
+    @apply px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 active:scale-95;
+    background-color: var(--c-accent);
+    color: var(--c-accent-text);
   }
-
-  .btn-primary:disabled {
+  .btn-accent:hover {
+    opacity: 0.92;
+  }
+  .btn-accent:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .btn-secondary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 active:scale-95;
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-text-color);
+  .btn-surface {
+    @apply px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 active:scale-95;
+    background-color: var(--c-surface-2);
+    color: var(--c-text);
   }
 }
 
@@ -91,15 +99,14 @@
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
 }
-
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Prevent text selection in interactive UI */
 .no-select {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
 }
