@@ -19,7 +19,7 @@ import { action, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { validateInitData } from "./lib/telegram";
 import { AI_COACH_COST } from "./lib/constants";
-import { chatCompletion, ChatMessage, routeModel, visionCompletion } from "./lib/models";
+import { arrayBufferToDataUrl, chatCompletion, ChatMessage, routeModel, visionCompletion } from "./lib/models";
 import { COACH_SYSTEM_PROMPT, VISION_SYSTEM_PROMPT } from "./lib/prompts";
 
 type CoachResult =
@@ -132,6 +132,13 @@ export const analyzeBodyImage = action({
     });
     if (!imageUrl) throw new Error("Image not found");
 
+    // The DeepSeek vision model can't download remote URLs, so fetch the stored
+    // image here and pass it as a base64 data URL.
+    const imageResp = await fetch(imageUrl);
+    if (!imageResp.ok) throw new Error("Could not download the uploaded image");
+    const contentType = imageResp.headers.get("content-type") ?? "image/jpeg";
+    const imageDataUrl = arrayBufferToDataUrl(contentType, await imageResp.arrayBuffer());
+
     const context = await ctx.runQuery(internal.coachInternal.getCoachContext, { userId });
     const userPrompt = `Analyze the attached photo for the user.\n\nProfile (JSON):\n${JSON.stringify(
       context.profile ?? {},
@@ -139,7 +146,7 @@ export const analyzeBodyImage = action({
       2,
     )}\n\nUser note: ${args.note ?? "General body/form analysis"}`;
 
-    const response = await visionCompletion(model, VISION_SYSTEM_PROMPT, imageUrl, userPrompt);
+    const response = await visionCompletion(model, VISION_SYSTEM_PROMPT, imageDataUrl, userPrompt);
 
     const label = args.note ? `[Photo] ${args.note}` : "[Photo analysis]";
     const { balance: newBalance } = await ctx.runMutation(internal.coachInternal.finalizeCoach, {

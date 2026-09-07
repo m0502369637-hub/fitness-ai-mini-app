@@ -2,12 +2,15 @@
 //
 // LLM model registry + OpenAI-compatible chat/completion client.
 //
-// DeepSeek exposes an OpenAI-compatible endpoint and is the default *text*
-// model. DeepSeek's public API does not (yet) provide a vision model, so image
-// analysis is routed to a separately-configured vision-capable model. This
-// registry is what makes "switch model based on capability" possible: each model
-// declares `capabilities.text` / `capabilities.vision`, and callers ask for the
-// capability they need instead of a hard-coded model id.
+// DeepSeek exposes an OpenAI-compatible endpoint and serves both our text model
+// (deepseek-v4-flash) and our vision model (deepseek-v4-flash-vision-exp).
+// This registry is what makes "switch model based on capability" possible: each
+// model declares `capabilities.text` / `capabilities.vision`, and callers ask
+// for the capability they need instead of a hard-coded model id.
+//
+// NOTE: the DeepSeek vision model is a *reasoning* model and cannot download
+// remote image URLs itself, so we pass images as base64 data URLs and give it a
+// generous max_tokens budget (reasoning consumes tokens before `content`).
 
 export interface ModelCapabilities {
   text: boolean;
@@ -23,12 +26,14 @@ export interface ModelConfig {
   maxTokens: number;
 }
 
+const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/v1/chat/completions";
+
 function textModel(): ModelConfig | null {
   const key = process.env.DEEPSEEK_API_KEY;
   if (!key) return null;
   return {
-    id: process.env.DEEPSEEK_MODEL ?? "deepseek-chat",
-    endpoint: "https://api.deepseek.com/v1/chat/completions",
+    id: process.env.DEEPSEEK_MODEL ?? "deepseek-v4-flash",
+    endpoint: DEEPSEEK_ENDPOINT,
     apiKey: key,
     capabilities: { text: true, vision: false },
     temperature: 0.7,
@@ -37,21 +42,20 @@ function textModel(): ModelConfig | null {
 }
 
 function visionModel(): ModelConfig | null {
-  const key = process.env.VISION_API_KEY;
-  const endpoint = process.env.VISION_BASE_URL;
-  if (!key || !endpoint) return null;
+  const key = process.env.DEEPSEEK_API_KEY;
+  if (!key) return null;
   return {
-    id: process.env.VISION_MODEL ?? "gpt-4o",
-    endpoint,
+    id: process.env.VISION_MODEL ?? "deepseek-v4-flash-vision-exp",
+    endpoint: DEEPSEEK_ENDPOINT,
     apiKey: key,
     capabilities: { text: true, vision: true },
     temperature: 0.4,
-    maxTokens: 1200,
+    maxTokens: 2000,
   };
 }
 
 /**
- * Pick a model by required capability. Text requests prefer DeepSeek; vision
+ * Pick a model by required capability. Text requests use the text model; vision
  * requests require a vision-capable model. Returns null when nothing suitable
  * is configured (callers degrade gracefully).
  */
@@ -98,10 +102,13 @@ export async function chatCompletion(
   }
 
   const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{ message?: { content?: string; reasoning_content?: string } }>;
   };
-  const text = data.choices?.[0]?.message?.content;
-  if (typeof text !== "string" || !text.trim()) {
+  const message = data.choices?.[0]?.message;
+  const text = message?.content?.trim();
+  // Reasoning models can return empty `content` if max_tokens is too low; never
+  // surface internal chain-of-thought — treat it as an empty response instead.
+  if (!text) {
     throw new Error(`LLM "${model.id}" returned an empty response`);
   }
   return text;
@@ -111,7 +118,7 @@ export async function chatCompletion(
 export async function visionCompletion(
   model: ModelConfig,
   systemPrompt: string,
-  imageUrl: string,
+  imageDataUrl: string,
   userPrompt: string,
 ): Promise<string> {
   return chatCompletion(model, [
@@ -120,8 +127,30 @@ export async function visionCompletion(
       role: "user",
       content: [
         { type: "text", text: userPrompt },
-        { type: "image_url", image_url: { url: imageUrl } },
+        { type: "image_url", image_url: { url: imageDataUrl } },
       ],
     },
   ]);
+}
+
+const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/** Base64-encode bytes without relying on btoa/Buffer (portable across runtimes). */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+    const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    out += B64_CHARS[b0 >> 2];
+    out += B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    out += i + 1 < bytes.length ? B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] : "=";
+    out += i + 2 < bytes.length ? B64_CHARS[b2 & 63] : "=";
+  }
+  return out;
+}
+
+/** Convert fetched image bytes into a base64 data URL for the vision model. */
+export function arrayBufferToDataUrl(contentType: string, buf: ArrayBuffer): string {
+  return `data:${contentType};base64,${bytesToBase64(new Uint8Array(buf))}`;
 }
