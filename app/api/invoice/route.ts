@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parse, validate } from "@telegram-apps/init-data-node";
+import { validate } from "@telegram-apps/init-data-node";
 import { randomUUID } from "crypto";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+
+interface TgUser {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}
 
 export const runtime = "nodejs";
 
@@ -20,8 +27,13 @@ export async function POST(req: NextRequest) {
 
     // Validate the Telegram init data (throws on invalid signature / expiry).
     validate(initData, botToken);
-    const data = parse(initData);
-    const tgUser = data.user;
+
+    // Parse the authenticated user out of the (now validated) init data.
+    // NOTE: we parse manually instead of using the package's `parse()`, which
+    // in this version requires a `signature` field that regular Mini App
+    // launches don't include.
+    const userRaw = new URLSearchParams(initData).get("user");
+    const tgUser = userRaw ? (JSON.parse(userRaw) as TgUser) : null;
     if (!tgUser) {
       return NextResponse.json({ error: "Missing user" }, { status: 401 });
     }
