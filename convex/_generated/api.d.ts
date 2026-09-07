@@ -9,6 +9,7 @@
  */
 
 import type * as lib_constants from "../lib/constants.js";
+import type * as lib_exercises from "../lib/exercises.js";
 import type * as lib_mock from "../lib/mock.js";
 import type * as lib_telegram from "../lib/telegram.js";
 import type * as lib_users from "../lib/users.js";
@@ -17,6 +18,7 @@ import type * as payments from "../payments.js";
 import type * as points from "../points.js";
 import type * as transactions from "../transactions.js";
 import type * as users from "../users.js";
+import type * as workoutLogs from "../workoutLogs.js";
 import type * as workoutPlans from "../workoutPlans.js";
 
 import type {
@@ -27,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "lib/constants": typeof lib_constants;
+  "lib/exercises": typeof lib_exercises;
   "lib/mock": typeof lib_mock;
   "lib/telegram": typeof lib_telegram;
   "lib/users": typeof lib_users;
@@ -35,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   points: typeof points;
   transactions: typeof transactions;
   users: typeof users;
+  workoutLogs: typeof workoutLogs;
   workoutPlans: typeof workoutPlans;
 }>;
 

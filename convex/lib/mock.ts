@@ -1,12 +1,21 @@
 // Deterministic mock "AI" for the coach and workout-plan generator.
 //
-// These are placeholders behind a clean interface. When you're ready to use a
-// real model (OpenAI / Claude / DeepSeek, etc.), replace the bodies of
-// `mockCoachResponse` and `generateMockPlan` with calls to your provider —
-// everything else (points charging, saving, history) stays identical.
+// The plan generator now draws from the vendored free-exercise-db catalog so
+// every generated exercise carries its id, muscle groups, equipment, image and
+// instructions. Swap the coach/plan bodies for a real model later — the points
+// charging and history remain unchanged.
+
+import { CatalogExercise, EXERCISE_CATALOG, ExerciseGroup } from "./exercises";
 
 export interface PlanExercise {
+  exerciseId: string;
   name: string;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  equipment?: string;
+  level?: string;
+  image: string;
+  instructions: string[];
   sets: number;
   reps: string;
 }
@@ -14,6 +23,95 @@ export interface PlanExercise {
 export interface PlanDay {
   day: string;
   exercises: PlanExercise[];
+}
+
+const SETS: Record<ExerciseGroup, number> = {
+  push: 3,
+  pull: 3,
+  legs: 3,
+  core: 3,
+  cardio: 2,
+};
+
+function repsFor(group: ExerciseGroup, e: CatalogExercise): string {
+  if (group === "core") return /plank|raise/i.test(e.name) ? "30–45s" : "15–20";
+  if (group === "cardio") return /squat|climber/i.test(e.name) ? "15" : "20 min";
+  return "8–12";
+}
+
+function adjustSets(sets: number, level: string): number {
+  const l = level.toLowerCase();
+  if (l.includes("beginner")) return Math.max(2, sets - 1);
+  if (l.includes("advanced")) return sets + 1;
+  return sets;
+}
+
+function toPlanExercise(e: CatalogExercise, sets: number, reps: string): PlanExercise {
+  return {
+    exerciseId: e.id,
+    name: e.name,
+    primaryMuscles: e.primaryMuscles,
+    secondaryMuscles: e.secondaryMuscles,
+    equipment: e.equipment ?? undefined,
+    level: e.level ?? undefined,
+    image: e.image,
+    instructions: e.instructions,
+    sets,
+    reps,
+  };
+}
+
+function buildDay(title: string, group: ExerciseGroup, level: string): PlanDay {
+  const n = group === "core" ? 4 : 4;
+  const exercises = EXERCISE_CATALOG[group].slice(0, n).map((e, i) =>
+    toPlanExercise(e, adjustSets(SETS[group] + (i === 0 ? 1 : 0), level), repsFor(group, e)),
+  );
+  return { day: title, exercises };
+}
+
+export function generateMockPlan(
+  goal: string,
+  level: string,
+): { title: string; days: PlanDay[] } {
+  const g = goal.toLowerCase();
+
+  let days: PlanDay[];
+  if (g.includes("muscle") || g.includes("gain") || g.includes("strong")) {
+    days = [
+      buildDay("Monday — Push", "push", level),
+      buildDay("Wednesday — Pull", "pull", level),
+      buildDay("Friday — Legs", "legs", level),
+      buildDay("Saturday — Core", "core", level),
+    ];
+  } else if (g.includes("lose") || g.includes("fat") || g.includes("weight")) {
+    days = [
+      buildDay("Monday — Conditioning", "cardio", level),
+      buildDay("Tuesday — Legs", "legs", level),
+      buildDay("Thursday — Core", "core", level),
+      buildDay("Friday — Cardio", "cardio", level),
+    ];
+  } else if (g.includes("endurance") || g.includes("cardio") || g.includes("run")) {
+    days = [
+      buildDay("Monday — Intervals", "cardio", level),
+      buildDay("Wednesday — Strength", "legs", level),
+      buildDay("Friday — Cardio", "cardio", level),
+      buildDay("Saturday — Core", "core", level),
+    ];
+  } else {
+    days = [
+      buildDay("Monday — Lower Body", "legs", level),
+      buildDay("Wednesday — Push", "push", level),
+      buildDay("Friday — Pull", "pull", level),
+      buildDay("Saturday — Core", "core", level),
+    ];
+  }
+
+  const title = `${toTitle(goal || "General Fitness")} Plan (${toTitle(level || "Intermediate")})`;
+  return { title, days };
+}
+
+function toTitle(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function mockCoachResponse(message: string, name: string): string {
@@ -35,103 +133,4 @@ export function mockCoachResponse(message: string, name: string): string {
     return `${name}, recovery is training. Aim for 7–9h sleep, keep easy days easy, and use light movement (walking, mobility) on rest days to flush soreness.\n\n(Mock coach)`;
   }
   return `${name}, great question! As a baseline: stay consistent, train with progressive overload 3–4x a week, eat enough protein, and get 7–9h of sleep. Want me to go deeper on muscle, fat loss, cardio, or nutrition?\n\n(Mock coach)`;
-}
-
-const EXERCISES: Record<string, PlanExercise[]> = {
-  legs: [
-    { name: "Back Squat", sets: 4, reps: "6–8" },
-    { name: "Romanian Deadlift", sets: 3, reps: "8–10" },
-    { name: "Walking Lunges", sets: 3, reps: "12 / leg" },
-    { name: "Leg Press", sets: 3, reps: "10–12" },
-    { name: "Calf Raises", sets: 4, reps: "15" },
-  ],
-  push: [
-    { name: "Bench Press", sets: 4, reps: "6–8" },
-    { name: "Overhead Press", sets: 3, reps: "8–10" },
-    { name: "Incline Dumbbell Press", sets: 3, reps: "8–12" },
-    { name: "Lateral Raises", sets: 3, reps: "15" },
-    { name: "Triceps Pushdown", sets: 3, reps: "10–12" },
-  ],
-  pull: [
-    { name: "Pull-ups / Lat Pulldown", sets: 4, reps: "8–10" },
-    { name: "Barbell Row", sets: 4, reps: "8–10" },
-    { name: "Seated Cable Row", sets: 3, reps: "10–12" },
-    { name: "Face Pulls", sets: 3, reps: "15" },
-    { name: "Biceps Curl", sets: 3, reps: "10–12" },
-  ],
-  full: [
-    { name: "Goblet Squat", sets: 3, reps: "10–12" },
-    { name: "Push-ups", sets: 3, reps: "10–15" },
-    { name: "Dumbbell Row", sets: 3, reps: "10–12" },
-    { name: "Plank", sets: 3, reps: "30–45s" },
-    { name: "Glute Bridge", sets: 3, reps: "15" },
-  ],
-  core: [
-    { name: "Plank", sets: 3, reps: "45s" },
-    { name: "Hanging Leg Raise", sets: 3, reps: "10–12" },
-    { name: "Cable Crunch", sets: 3, reps: "12–15" },
-    { name: "Russian Twist", sets: 3, reps: "20" },
-  ],
-  cardio: [
-    { name: "Incline Walk", sets: 1, reps: "20 min" },
-    { name: "Intervals (run / bike)", sets: 8, reps: "30s on / 60s off" },
-    { name: "Steady State", sets: 1, reps: "30 min" },
-  ],
-};
-
-function toTitle(s: string): string {
-  return s.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-export function generateMockPlan(
-  goal: string,
-  level: string,
-): { title: string; days: PlanDay[] } {
-  const g = goal.toLowerCase();
-  const l = level.toLowerCase();
-
-  let days: PlanDay[];
-  if (g.includes("muscle") || g.includes("gain") || g.includes("strong")) {
-    days = [
-      { day: "Monday — Push", exercises: EXERCISES.push },
-      { day: "Wednesday — Pull", exercises: EXERCISES.pull },
-      { day: "Friday — Legs", exercises: EXERCISES.legs },
-      { day: "Saturday — Core", exercises: EXERCISES.core },
-    ];
-  } else if (g.includes("lose") || g.includes("fat") || g.includes("weight")) {
-    days = [
-      { day: "Monday — Full Body", exercises: EXERCISES.full },
-      { day: "Tuesday — Cardio", exercises: EXERCISES.cardio },
-      { day: "Thursday — Full Body", exercises: EXERCISES.full },
-      { day: "Friday — Cardio", exercises: EXERCISES.cardio },
-      { day: "Saturday — Core", exercises: EXERCISES.core },
-    ];
-  } else if (g.includes("endurance") || g.includes("cardio") || g.includes("run")) {
-    days = [
-      { day: "Monday — Intervals", exercises: EXERCISES.cardio },
-      { day: "Wednesday — Strength", exercises: EXERCISES.full },
-      { day: "Friday — Long Steady State", exercises: EXERCISES.cardio },
-      { day: "Saturday — Core", exercises: EXERCISES.core },
-    ];
-  } else {
-    days = [
-      { day: "Monday — Full Body", exercises: EXERCISES.full },
-      { day: "Wednesday — Push", exercises: EXERCISES.push },
-      { day: "Friday — Pull", exercises: EXERCISES.pull },
-      { day: "Saturday — Core", exercises: EXERCISES.core },
-    ];
-  }
-
-  const adjust = (ex: PlanExercise): PlanExercise => {
-    if (l.includes("beginner")) return { ...ex, sets: Math.max(2, ex.sets - 1) };
-    if (l.includes("advanced")) return { ...ex, sets: ex.sets + 1 };
-    return ex;
-  };
-
-  const title = `${toTitle(goal || "General Fitness")} Plan (${toTitle(level || "Intermediate")})`;
-
-  return {
-    title,
-    days: days.map((d) => ({ day: d.day, exercises: d.exercises.map(adjust) })),
-  };
 }

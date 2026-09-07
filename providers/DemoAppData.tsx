@@ -1,14 +1,17 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
     AppData,
+    AppExerciseLog,
     AppPackage,
     AppPlan,
     AppTransaction,
     AppUser,
     CoachResult,
     PlanResult,
+    ProgressStats,
+    ToggleExerciseArgs,
 } from '@/lib/types'
 import { AppDataContext } from '@/lib/appDataContext'
 import {
@@ -49,6 +52,7 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
     const [packages] = useState<AppPackage[]>(
         DEFAULT_PACKAGES.map((p, i) => ({ ...p, _id: `pkg_${i}`, active: true })),
     )
+    const [exerciseLogs, setExerciseLogs] = useState<AppExerciseLog[]>([])
 
     const askCoach = useCallback(
         async (message: string): Promise<CoachResult> => {
@@ -139,6 +143,53 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         [user],
     )
 
+    const toggleExercise = useCallback(async (args: ToggleExerciseArgs) => {
+        setExerciseLogs((prev) => {
+            const key = `${args.planId}:${args.dayIndex}:${args.exerciseIndex}`
+            const existing = prev.find(
+                (l) => `${l.planId}:${l.dayIndex}:${l.exerciseIndex}` === key,
+            )
+            if (existing) {
+                return prev.map((l) =>
+                    l._id === existing._id
+                        ? { ...l, completed: args.completed, completedAt: Date.now() }
+                        : l,
+                )
+            }
+            return [
+                ...prev,
+                {
+                    _id: `log_${Date.now()}`,
+                    userId: user._id,
+                    planId: args.planId,
+                    dayIndex: args.dayIndex,
+                    exerciseIndex: args.exerciseIndex,
+                    exerciseId: args.exerciseId,
+                    completed: args.completed,
+                    completedAt: Date.now(),
+                },
+            ]
+        })
+    }, [user._id])
+
+    const progress = useMemo<ProgressStats>(() => {
+        const done = exerciseLogs.filter((l) => l.completed)
+        const now = new Date()
+        const startOfDay = new Date(now)
+        startOfDay.setHours(0, 0, 0, 0)
+        const startOfWeek = new Date(now)
+        startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7))
+        startOfWeek.setHours(0, 0, 0, 0)
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const count = (since: number) => done.filter((l) => l.completedAt >= since).length
+        return {
+            today: count(startOfDay.getTime()),
+            week: count(startOfWeek.getTime()),
+            month: count(startOfMonth.getTime()),
+            all: done.length,
+        }
+    }, [exerciseLogs])
+
     const value: AppData = {
         isDemo: true,
         ready: true,
@@ -148,9 +199,12 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         transactions,
         plans,
         packages,
+        exerciseLogs,
+        progress,
         askCoach,
         generatePlan,
         buyPackage,
+        toggleExercise,
     }
 
     return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>

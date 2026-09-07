@@ -27,6 +27,13 @@ export interface AppExercise {
   name: string;
   sets: number;
   reps: string;
+  exerciseId?: string;
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
+  equipment?: string;
+  level?: string;
+  image?: string;
+  instructions?: string[];
 }
 
 export interface AppPlanDay {
@@ -48,6 +55,32 @@ export interface GeneratedPlan {
   _id: string;
   title: string;
   days: AppPlanDay[];
+}
+
+export interface AppExerciseLog {
+  _id: string;
+  userId: string;
+  planId: string;
+  dayIndex: number;
+  exerciseIndex: number;
+  exerciseId?: string;
+  completed: boolean;
+  completedAt: number;
+}
+
+export interface ProgressStats {
+  today: number;
+  week: number;
+  month: number;
+  all: number;
+}
+
+export interface ToggleExerciseArgs {
+  planId: string;
+  dayIndex: number;
+  exerciseIndex: number;
+  exerciseId?: string;
+  completed: boolean;
 }
 
 export interface AppPackage {
@@ -77,7 +110,10 @@ export interface AppData {
   transactions: AppTransaction[];
   plans: AppPlan[];
   packages: AppPackage[];
+  exerciseLogs: AppExerciseLog[];
+  progress: ProgressStats;
   askCoach: (message: string) => Promise<CoachResult>;
   generatePlan: (goal: string, level: string) => Promise<PlanResult>;
   buyPackage: (pkg: AppPackage) => Promise<void>;
+  toggleExercise: (args: ToggleExerciseArgs) => Promise<void>;
 }

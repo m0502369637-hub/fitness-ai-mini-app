@@ -19,6 +19,9 @@ A Telegram Mini App that combines an **AI coach** and **custom workout plans** w
 | Refunds | Admin `/refund <tgId>` command in the bot chat → `refundStarPayment` + points reversal with a `↩️ Refund` history entry. |
 | AI Coach | Chat-style coaching in the Coach tab; each query costs 5 points; mock AI behind a swappable interface. |
 | Workout plans | Goal + level generator in the Plan tab (15 pts), plans saved to Convex and shown live, with a "current plan" card on Home. |
+| Exercise library | Plans draw from a curated subset of [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain) — every exercise shows its illustration, muscle groups, equipment, and step-by-step instructions. |
+| Exercise tracking | Tick/untick every exercise per day; a progress bar per day and per plan updates live. |
+| Progress rollups | Completed-exercise counts for **today / week / month / all-time**, stored in Convex so the future AI coach can read your training history. |
 | Progress dashboard | Home tracks points, plans, workouts, coach calls, and a weekly activity bar chart built from real transactions. |
 | Wallet & history | Profile shows balance, buy-points card, feature shortcuts, and the full point-history ledger. |
 | Live balance | Convex reactive queries update points/balance in real time across screens. |
@@ -141,4 +144,12 @@ The coach/plan "AI" is a deterministic mock in [`convex/lib/mock.ts`](convex/lib
 To use a real model, replace `mockCoachResponse` / `generateMockPlan` with a call to your
 provider (OpenAI, Claude, DeepSeek, etc.) inside a Convex **action** (actions may call
 `fetch`), then call that action from `convex/points.ts`. Points charging and history remain
-unchanged.
+unchanged. The future AI coach will also be able to read a user's `exerciseLogs` /
+`progressStats` to personalize advice from their training history.
+
+## Exercise data
+
+Plans use a curated subset of exercises from
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain),
+vendored in [`convex/lib/exercises.ts`](convex/lib/exercises.ts). Exercise illustrations are
+served from the library's GitHub-hosted assets.

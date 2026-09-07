@@ -1,18 +1,34 @@
 'use client'
 
-import { useState } from 'react'
-import { Dumbbell, Sparkles } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  CalendarDays,
+  CalendarRange,
+  Check,
+  ChevronDown,
+  Dumbbell,
+  Flame,
+  Sparkles,
+  Trophy,
+} from 'lucide-react'
 import { toast } from 'sonner'
+import clsx from 'clsx'
 import { useAppData } from '@/lib/appDataContext'
 import { useHaptic } from '@/hooks/useHaptic'
 import { PLAN_COST } from '@/convex/lib/constants'
-import { AppPlan, GeneratedPlan } from '@/lib/types'
+import { AppExercise, AppExerciseLog, AppPlanDay, GeneratedPlan } from '@/lib/types'
 
 const GOALS = ['Muscle gain', 'Fat loss', 'Endurance', 'General fitness']
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced']
 
+interface PlanView {
+  _id: string
+  title: string
+  days: AppPlanDay[]
+}
+
 export function PlanScreen({ onBuy }: { onBuy: () => void }) {
-  const { generatePlan, plans } = useAppData()
+  const { generatePlan, plans, exerciseLogs, progress, toggleExercise } = useAppData()
   const { impact } = useHaptic()
   const [goal, setGoal] = useState(GOALS[0])
   const [level, setLevel] = useState(LEVELS[1])
@@ -25,7 +41,6 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
     setLoading(true)
     const res = await generatePlan(goal, level)
     setLoading(false)
-
     if (res.ok) {
       setResult(res.plan)
       toast.success('Plan generated!')
@@ -35,15 +50,26 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
     }
   }
 
+  const others = plans.filter((p) => p._id !== result?._id)
+
   return (
     <div className="space-y-4">
       <div>
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--c-muted)]">
           Workout Plans
         </p>
-        <h1 className="text-2xl font-extrabold text-[var(--c-text)]">Build your plan</h1>
+        <h1 className="text-2xl font-extrabold text-[var(--c-text)]">Build & track your plan</h1>
       </div>
 
+      {/* Progress rollups */}
+      <div className="card p-3 grid grid-cols-4 gap-2">
+        <ProgressStat icon={<Flame size={16} />} label="Today" value={progress.today} />
+        <ProgressStat icon={<CalendarDays size={16} />} label="Week" value={progress.week} />
+        <ProgressStat icon={<CalendarRange size={16} />} label="Month" value={progress.month} />
+        <ProgressStat icon={<Trophy size={16} />} label="All time" value={progress.all} />
+      </div>
+
+      {/* Generator */}
       <div className="card p-4 space-y-3">
         <label className="block">
           <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
@@ -60,7 +86,6 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
             ))}
           </select>
         </label>
-
         <label className="block">
           <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
             Level
@@ -76,7 +101,6 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
             ))}
           </select>
         </label>
-
         <button
           onClick={generate}
           disabled={loading}
@@ -87,13 +111,131 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
         </button>
       </div>
 
-      {result && <PlanCard plan={result} />}
+      {/* Just-generated plan (highlighted) */}
+      {result && (
+        <PlanCard
+          plan={result}
+          logs={exerciseLogs}
+          onToggle={toggleExercise}
+          highlighted
+        />
+      )}
 
-      {plans.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="font-bold text-[var(--c-text)]">Saved plans</h3>
-          {plans.map((p) => (
-            <PlanCard key={p._id} plan={p} />
+      {/* Saved plans */}
+      {others.map((p) => (
+        <PlanCard key={p._id} plan={p} logs={exerciseLogs} onToggle={toggleExercise} />
+      ))}
+
+      {!result && plans.length === 0 && (
+        <div className="card p-6 text-center" style={{ borderStyle: 'dashed' }}>
+          <Dumbbell size={28} className="mx-auto text-[var(--c-muted)]" />
+          <p className="font-bold text-[var(--c-text)] mt-2">No plans yet</p>
+          <p className="text-sm text-[var(--c-muted)] mt-1">
+            Pick a goal and generate your first workout plan.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProgressStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: number
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 py-1">
+      <span className="text-[var(--c-accent)]">{icon}</span>
+      <span className="text-lg font-extrabold text-[var(--c-text)] leading-none">{value}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--c-muted)]">
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function PlanCard({
+  plan,
+  logs,
+  onToggle,
+  highlighted,
+}: {
+  plan: PlanView
+  logs: AppExerciseLog[]
+  onToggle: (args: {
+    planId: string
+    dayIndex: number
+    exerciseIndex: number
+    exerciseId?: string
+    completed: boolean
+  }) => void
+  highlighted?: boolean
+}) {
+  const [open, setOpen] = useState(true)
+
+  const { completed, total } = useMemo(() => {
+    let total = 0
+    let completed = 0
+    plan.days.forEach((d, di) =>
+      d.exercises.forEach((_, ei) => {
+        total += 1
+        if (isDone(logs, plan._id, di, ei)) completed += 1
+      }),
+    )
+    return { completed, total }
+  }, [plan, logs])
+
+  const pct = total ? Math.round((completed / total) * 100) : 0
+
+  return (
+    <div
+      className={clsx('card overflow-hidden', highlighted && 'ring-2 ring-[var(--c-accent)]')}
+    >
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 p-4 text-left"
+      >
+        <div className="w-11 h-11 rounded-xl bg-[var(--c-accent-soft)] text-[var(--c-accent)] flex items-center justify-center shrink-0">
+          <Dumbbell size={22} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-extrabold text-[var(--c-text)] truncate">{plan.title}</p>
+          <p className="text-xs text-[var(--c-muted)]">
+            {completed}/{total} exercises done
+          </p>
+        </div>
+        <ChevronDown
+          size={18}
+          className={clsx('text-[var(--c-muted)] transition-transform', open && 'rotate-180')}
+        />
+      </button>
+
+      {/* Progress bar */}
+      <div className="px-4 pb-3">
+        <div className="h-1.5 rounded-full bg-[var(--c-surface-2)] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-[var(--c-accent)] transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-3">
+          {plan.days.map((day, di) => (
+            <DaySection
+              key={di}
+              day={day}
+              dayIndex={di}
+              planId={plan._id}
+              logs={logs}
+              onToggle={onToggle}
+            />
           ))}
         </div>
       )}
@@ -101,32 +243,141 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
   )
 }
 
-function PlanCard({ plan }: { plan: GeneratedPlan | AppPlan }) {
+function DaySection({
+  day,
+  dayIndex,
+  planId,
+  logs,
+  onToggle,
+}: {
+  day: AppPlanDay
+  dayIndex: number
+  planId: string
+  logs: AppExerciseLog[]
+  onToggle: (args: {
+    planId: string
+    dayIndex: number
+    exerciseIndex: number
+    exerciseId?: string
+    completed: boolean
+  }) => void
+}) {
+  const done = day.exercises.filter((_, ei) => isDone(logs, planId, dayIndex, ei)).length
   return (
-    <div className="card p-4">
-      <h4 className="font-extrabold text-[var(--c-text)] flex items-center gap-2">
-        <Dumbbell size={16} className="text-[var(--c-accent)]" />
-        {plan.title}
-      </h4>
-      <div className="mt-3 space-y-3">
-        {plan.days.map((d, i) => (
-          <div key={i}>
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--c-accent)]">
-              {d.day}
-            </p>
-            <ul className="mt-1 space-y-1">
-              {d.exercises.map((ex, j) => (
-                <li key={j} className="flex justify-between text-sm text-[var(--c-text)]">
-                  <span>{ex.name}</span>
-                  <span className="text-[var(--c-muted)]">
-                    {ex.sets} × {ex.reps}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+    <div>
+      <div className="flex items-center justify-between px-1 py-2">
+        <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--c-accent)]">
+          {day.day}
+        </p>
+        <span className="text-[11px] font-bold text-[var(--c-muted)]">
+          {done}/{day.exercises.length}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {day.exercises.map((ex, ei) => (
+          <ExerciseRow
+            key={ei}
+            ex={ex}
+            done={isDone(logs, planId, dayIndex, ei)}
+            onToggle={(completed) =>
+              onToggle({
+                planId,
+                dayIndex,
+                exerciseIndex: ei,
+                exerciseId: ex.exerciseId,
+                completed,
+              })
+            }
+          />
         ))}
       </div>
     </div>
+  )
+}
+
+function ExerciseRow({
+  ex,
+  done,
+  onToggle,
+}: {
+  ex: AppExercise
+  done: boolean
+  onToggle: (completed: boolean) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const muscles = [ex.primaryMuscles?.join(', '), ex.secondaryMuscles?.join(', ')]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <div className="rounded-xl bg-[var(--c-surface-2)] p-3" style={{ border: '1px solid var(--c-border)' }}>
+      <div className="flex items-center gap-3">
+        {/* Image */}
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="relative w-16 h-16 shrink-0 rounded-xl bg-[var(--c-surface)] overflow-hidden"
+        >
+          <Dumbbell size={20} className="absolute inset-0 m-auto text-[var(--c-muted)]" />
+          {ex.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={ex.image}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          )}
+        </button>
+
+        {/* Details */}
+        <button onClick={() => setExpanded((e) => !e)} className="flex-1 min-w-0 text-left">
+          <p className={clsx('font-bold text-sm', done ? 'text-[var(--c-muted)] line-through' : 'text-[var(--c-text)]')}>
+            {ex.name}
+          </p>
+          <p className="text-[11px] text-[var(--c-muted)] truncate">
+            {muscles || ex.equipment || 'Exercise'}
+          </p>
+          <p className="text-[11px] font-semibold text-[var(--c-accent)]">
+            {ex.sets} × {ex.reps}
+          </p>
+        </button>
+
+        {/* Tick */}
+        <button
+          onClick={() => onToggle(!done)}
+          className={clsx(
+            'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition active:scale-90',
+            done
+              ? 'bg-[var(--c-accent)] text-[var(--c-accent-text)]'
+              : 'bg-transparent text-transparent',
+          )}
+          style={!done ? { border: '2px solid var(--c-muted)' } : undefined}
+        >
+          <Check size={16} strokeWidth={3} />
+        </button>
+      </div>
+
+      {/* Instructions */}
+      {expanded && ex.instructions && ex.instructions.length > 0 && (
+        <ol className="mt-3 pt-3 space-y-1.5 text-xs text-[var(--c-muted)] list-decimal list-inside" style={{ borderTop: '1px solid var(--c-border)' }}>
+          {ex.instructions.map((step, i) => (
+            <li key={i}>{step}</li>
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function isDone(logs: AppExerciseLog[], planId: string, dayIndex: number, exerciseIndex: number) {
+  return logs.some(
+    (l) =>
+      l.planId === planId &&
+      l.dayIndex === dayIndex &&
+      l.exerciseIndex === exerciseIndex &&
+      l.completed,
   )
 }

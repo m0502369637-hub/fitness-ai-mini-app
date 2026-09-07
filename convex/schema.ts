@@ -47,6 +47,13 @@ export default defineSchema({
             name: v.string(),
             sets: v.number(),
             reps: v.string(),
+            exerciseId: v.optional(v.string()),
+            primaryMuscles: v.optional(v.array(v.string())),
+            secondaryMuscles: v.optional(v.array(v.string())),
+            equipment: v.optional(v.string()),
+            level: v.optional(v.string()),
+            image: v.optional(v.string()),
+            instructions: v.optional(v.array(v.string())),
           }),
         ),
       }),
@@ -55,6 +62,21 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_createdAt", ["userId", "createdAt"]),
+
+  // Per-exercise completion tracking (tick/untick) for a user's plan.
+  exerciseLogs: defineTable({
+    userId: v.id("users"),
+    planId: v.id("workoutPlans"),
+    dayIndex: v.number(),
+    exerciseIndex: v.number(),
+    exerciseId: v.optional(v.string()),
+    completed: v.boolean(),
+    completedAt: v.number(),
+    logKey: v.string(), // `${planId}:${dayIndex}:${exerciseIndex}` — unique per exercise
+  })
+    .index("by_user_plan", ["userId", "planId"])
+    .index("by_user_completedAt", ["userId", "completedAt"])
+    .index("by_logKey", ["logKey"]),
 
   // Point packages — server-side source of truth for prices (client can't tamper)
   pointPackages: defineTable({
