@@ -9,9 +9,39 @@ export default defineSchema({
     username: v.optional(v.string()),
     pointsBalance: v.number(),
     createdAt: v.number(), // ms epoch
+    onboarded: v.optional(v.boolean()), // onboarding questionnaire completed?
+    language: v.optional(v.string()), // "en" | "ar"
   })
     .index("by_tgId", ["tgId"])
     .index("by_createdAt", ["createdAt"]),
+
+  // Onboarding questionnaire answers — the structured profile the AI coach reads
+  // to personalize plans and advice.
+  userProfiles: defineTable({
+    userId: v.id("users"),
+    goal: v.string(), // muscle_gain | fat_loss | endurance | general
+    level: v.string(), // beginner | intermediate | advanced
+    experience: v.string(), // new | some | experienced
+    weeklyDays: v.number(), // training days per week
+    equipment: v.array(v.string()), // available equipment
+    heightCm: v.optional(v.number()),
+    weightKg: v.optional(v.number()),
+    targetWeightKg: v.optional(v.number()),
+    age: v.optional(v.number()),
+    gender: v.optional(v.string()),
+    limitations: v.optional(v.string()), // injuries / mobility notes
+    diet: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  // Persisted coach conversation so the AI keeps full context across sessions.
+  coachMessages: defineTable({
+    userId: v.id("users"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    imageStorageId: v.optional(v.id("_storage")),
+    createdAt: v.number(),
+  }).index("by_userId_createdAt", ["userId", "createdAt"]),
 
   // Immutable ledger — every balance change (negative = spend, positive = credit)
   transactions: defineTable({

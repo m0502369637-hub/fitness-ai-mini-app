@@ -14,13 +14,43 @@ import {
 import { toast } from 'sonner'
 import clsx from 'clsx'
 import { useAppData } from '@/lib/appDataContext'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { useHaptic } from '@/hooks/useHaptic'
 import { PLAN_COST } from '@/convex/lib/constants'
 import { findCatalogExercise } from '@/convex/lib/exercises'
 import { AppExercise, AppExerciseLog, AppPlanDay, GeneratedPlan } from '@/lib/types'
 
-const GOALS = ['Muscle gain', 'Fat loss', 'Endurance', 'General fitness']
-const LEVELS = ['Beginner', 'Intermediate', 'Advanced']
+const GOALS = [
+  { value: 'Muscle gain', key: 'plan.goals.muscle' },
+  { value: 'Fat loss', key: 'plan.goals.fat' },
+  { value: 'Endurance', key: 'plan.goals.endurance' },
+  { value: 'General fitness', key: 'plan.goals.general' },
+]
+const LEVELS = [
+  { value: 'Beginner', key: 'plan.levels.beginner' },
+  { value: 'Intermediate', key: 'plan.levels.intermediate' },
+  { value: 'Advanced', key: 'plan.levels.advanced' },
+]
+
+function goalFromProfile(goal?: string): string {
+  switch (goal) {
+    case 'muscle_gain':
+      return 'Muscle gain'
+    case 'fat_loss':
+      return 'Fat loss'
+    case 'endurance':
+      return 'Endurance'
+    default:
+      return 'General fitness'
+  }
+}
+
+function levelFromProfile(level?: string): string {
+  if (level === 'beginner' || level === 'advanced') {
+    return level[0].toUpperCase() + level.slice(1)
+  }
+  return 'Intermediate'
+}
 
 interface PlanView {
   _id: string
@@ -29,10 +59,11 @@ interface PlanView {
 }
 
 export function PlanScreen({ onBuy }: { onBuy: () => void }) {
-  const { generatePlan, plans, exerciseLogs, progress, toggleExercise } = useAppData()
+  const { generatePlan, plans, exerciseLogs, progress, toggleExercise, profile } = useAppData()
+  const { t } = useLanguage()
   const { impact } = useHaptic()
-  const [goal, setGoal] = useState(GOALS[0])
-  const [level, setLevel] = useState(LEVELS[1])
+  const [goal, setGoal] = useState<string>(() => goalFromProfile(profile?.goal))
+  const [level, setLevel] = useState<string>(() => levelFromProfile(profile?.level))
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GeneratedPlan | null>(null)
 
@@ -44,9 +75,9 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
     setLoading(false)
     if (res.ok) {
       setResult(res.plan)
-      toast.success('Plan generated!')
+      toast.success(t('plan.generated'))
     } else if (res.reason === 'INSUFFICIENT_POINTS') {
-      toast.error('Not enough points')
+      toast.error(t('plan.notEnough'))
       onBuy()
     }
   }
@@ -57,24 +88,24 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
     <div className="space-y-4">
       <div>
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--c-muted)]">
-          Workout Plans
+          {t('plan.title')}
         </p>
-        <h1 className="text-2xl font-extrabold text-[var(--c-text)]">Build & track your plan</h1>
+        <h1 className="text-2xl font-extrabold text-[var(--c-text)]">{t('plan.subtitle')}</h1>
       </div>
 
       {/* Progress rollups */}
       <div className="card p-3 grid grid-cols-4 gap-2">
-        <ProgressStat icon={<Flame size={16} />} label="Today" value={progress.today} />
-        <ProgressStat icon={<CalendarDays size={16} />} label="Week" value={progress.week} />
-        <ProgressStat icon={<CalendarRange size={16} />} label="Month" value={progress.month} />
-        <ProgressStat icon={<Trophy size={16} />} label="All time" value={progress.all} />
+        <ProgressStat icon={<Flame size={16} />} label={t('plan.today')} value={progress.today} />
+        <ProgressStat icon={<CalendarDays size={16} />} label={t('plan.week')} value={progress.week} />
+        <ProgressStat icon={<CalendarRange size={16} />} label={t('plan.month')} value={progress.month} />
+        <ProgressStat icon={<Trophy size={16} />} label={t('plan.allTime')} value={progress.all} />
       </div>
 
       {/* Generator */}
       <div className="card p-4 space-y-3">
         <label className="block">
           <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
-            Goal
+            {t('plan.goal')}
           </span>
           <select
             value={goal}
@@ -83,13 +114,15 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
             style={{ border: '1px solid var(--c-border)' }}
           >
             {GOALS.map((g) => (
-              <option key={g}>{g}</option>
+              <option key={g.value} value={g.value}>
+                {t(g.key)}
+              </option>
             ))}
           </select>
         </label>
         <label className="block">
           <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
-            Level
+            {t('plan.level')}
           </span>
           <select
             value={level}
@@ -98,7 +131,9 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
             style={{ border: '1px solid var(--c-border)' }}
           >
             {LEVELS.map((l) => (
-              <option key={l}>{l}</option>
+              <option key={l.value} value={l.value}>
+                {t(l.key)}
+              </option>
             ))}
           </select>
         </label>
@@ -108,7 +143,7 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
           className="btn-accent w-full flex items-center justify-center gap-2 py-3"
         >
           <Sparkles size={16} />
-          {loading ? 'Generating…' : `Generate plan (${PLAN_COST} pts)`}
+          {loading ? t('plan.generating') : t('plan.generate', { cost: PLAN_COST })}
         </button>
       </div>
 
@@ -130,10 +165,8 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
       {!result && plans.length === 0 && (
         <div className="card p-6 text-center" style={{ borderStyle: 'dashed' }}>
           <Dumbbell size={28} className="mx-auto text-[var(--c-muted)]" />
-          <p className="font-bold text-[var(--c-text)] mt-2">No plans yet</p>
-          <p className="text-sm text-[var(--c-muted)] mt-1">
-            Pick a goal and generate your first workout plan.
-          </p>
+          <p className="font-bold text-[var(--c-text)] mt-2">{t('plan.noPlans')}</p>
+          <p className="text-sm text-[var(--c-muted)] mt-1">{t('plan.noPlansSub')}</p>
         </div>
       )}
     </div>
@@ -177,6 +210,7 @@ function PlanCard({
   }) => void
   highlighted?: boolean
 }) {
+  const { t } = useLanguage()
   const [open, setOpen] = useState(true)
 
   const { completed, total } = useMemo(() => {
@@ -199,7 +233,7 @@ function PlanCard({
     >
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 p-4 text-left"
+        className="w-full flex items-center gap-3 p-4 text-start"
       >
         <div className="w-11 h-11 rounded-xl bg-[var(--c-accent-soft)] text-[var(--c-accent)] flex items-center justify-center shrink-0">
           <Dumbbell size={22} />
@@ -207,7 +241,7 @@ function PlanCard({
         <div className="flex-1 min-w-0">
           <p className="font-extrabold text-[var(--c-text)] truncate">{plan.title}</p>
           <p className="text-xs text-[var(--c-muted)]">
-            {completed}/{total} exercises done
+            {t('plan.done', { done: completed, total })}
           </p>
         </div>
         <ChevronDown
@@ -305,6 +339,7 @@ function ExerciseRow({
   done: boolean
   onToggle: (completed: boolean) => void
 }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
 
   // Resolve rich media for this exercise. New plans carry images/instructions
@@ -324,7 +359,7 @@ function ExerciseRow({
       : '') ||
     ex.equipment ||
     (cat?.equipment ?? '') ||
-    'Exercise'
+    t('plan.exercise')
 
   return (
     <div className="rounded-xl bg-[var(--c-surface-2)] p-3" style={{ border: '1px solid var(--c-border)' }}>
@@ -355,7 +390,7 @@ function ExerciseRow({
         </button>
 
         {/* Details */}
-        <button onClick={() => setExpanded((e) => !e)} className="flex-1 min-w-0 text-left">
+        <button onClick={() => setExpanded((e) => !e)} className="flex-1 min-w-0 text-start">
           <p className={clsx('font-bold text-sm', done ? 'text-[var(--c-muted)] line-through' : 'text-[var(--c-text)]')}>
             {ex.name}
           </p>
@@ -386,7 +421,7 @@ function ExerciseRow({
           {images.length > 0 && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--c-muted)] mb-2">
-                How to do it
+                {t('plan.howTo')}
               </p>
               <div
                 className="grid gap-2"

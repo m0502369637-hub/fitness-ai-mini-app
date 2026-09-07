@@ -1,26 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useAppData } from '@/lib/appDataContext'
 import { HomeScreen } from '@/components/screens/HomeScreen'
 import { CoachScreen } from '@/components/screens/CoachScreen'
 import { PlanScreen } from '@/components/screens/PlanScreen'
 import { ProfileScreen } from '@/components/screens/ProfileScreen'
+import { OnboardingFlow } from '@/components/screens/OnboardingFlow'
 import { BottomNav, TabId } from '@/components/ui/BottomNav'
 import { PurchaseModal } from '@/components/ui/PurchaseModal'
-import { WelcomePopup } from '@/components/ui/WelcomePopup'
 
 export default function Home() {
   const { isReady } = useTelegram()
-  const { isNewUser } = useAppData()
+  const { user } = useAppData()
   const [tab, setTab] = useState<TabId>('home')
   const [purchaseOpen, setPurchaseOpen] = useState(false)
-  const [welcomeOpen, setWelcomeOpen] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
 
-  useEffect(() => {
-    if (isNewUser) setWelcomeOpen(true)
-  }, [isNewUser])
+  // First-time (or not-yet-onboarded) users see the questionnaire first.
+  const showOnboarding = !!user && !user.onboarded
 
   if (!isReady) {
     return (
@@ -38,12 +37,26 @@ export default function Home() {
         {tab === 'home' && <HomeScreen onNavigate={setTab} onBuy={onBuy} />}
         {tab === 'coach' && <CoachScreen onBuy={onBuy} />}
         {tab === 'plan' && <PlanScreen onBuy={onBuy} />}
-        {tab === 'profile' && <ProfileScreen onBuy={onBuy} onNavigate={setTab} />}
+        {tab === 'profile' && (
+          <ProfileScreen
+            onBuy={onBuy}
+            onNavigate={setTab}
+            onEditProfile={() => setEditProfileOpen(true)}
+          />
+        )}
       </div>
 
       <BottomNav tab={tab} onChange={setTab} />
       <PurchaseModal open={purchaseOpen} onClose={() => setPurchaseOpen(false)} />
-      <WelcomePopup open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
+
+      {showOnboarding && <OnboardingFlow mode="onboarding" onComplete={() => {}} />}
+      {!showOnboarding && editProfileOpen && (
+        <OnboardingFlow
+          mode="edit"
+          onClose={() => setEditProfileOpen(false)}
+          onComplete={() => setEditProfileOpen(false)}
+        />
+      )}
     </main>
   )
 }

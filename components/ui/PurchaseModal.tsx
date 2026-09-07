@@ -3,11 +3,13 @@
 import { useEffect } from 'react'
 import { Star, X } from 'lucide-react'
 import { useAppData } from '@/lib/appDataContext'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { AppPackage } from '@/lib/types'
 import { formatPoints } from '@/lib/telegram'
 
 export function PurchaseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { packages, buyPackage, isDemo } = useAppData()
+  const { t } = useLanguage()
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
@@ -32,7 +34,7 @@ export function PurchaseModal({ open, onClose }: { open: boolean; onClose: () =>
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-extrabold text-[var(--c-text)]">Get more points</h2>
+          <h2 className="text-lg font-extrabold text-[var(--c-text)]">{t('buy.title')}</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-full bg-[var(--c-surface-2)] text-[var(--c-muted)]"
@@ -40,12 +42,10 @@ export function PurchaseModal({ open, onClose }: { open: boolean; onClose: () =>
             <X size={18} />
           </button>
         </div>
-        <p className="text-xs text-[var(--c-muted)] mb-4">
-          Points power AI Coach queries and workout plans.
-        </p>
+        <p className="text-xs text-[var(--c-muted)] mb-4">{t('buy.sub')}</p>
 
         {isDemo && (
-          <p className="text-xs text-[var(--c-accent)] mb-3">Demo mode — purchases are simulated.</p>
+          <p className="text-xs text-[var(--c-accent)] mb-3">{t('buy.demo')}</p>
         )}
 
         <div className="space-y-3">
@@ -73,10 +73,7 @@ export function PurchaseModal({ open, onClose }: { open: boolean; onClose: () =>
 
           {packages.length === 0 && (
             <p className="text-sm text-[var(--c-muted)] text-center py-4">
-              No packages yet. Seed them with{' '}
-              <code className="px-1 py-0.5 bg-[var(--c-surface-2)] rounded">
-                npx convex run packages:seed
-              </code>
+              {t('buy.empty')}
             </p>
           )}
         </div>

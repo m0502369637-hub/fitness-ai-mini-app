@@ -3,13 +3,17 @@
 import { useCallback, useMemo, useState } from 'react'
 import {
     AppData,
+    AppCoachMessage,
     AppExerciseLog,
     AppPackage,
     AppPlan,
     AppTransaction,
     AppUser,
+    AppUserProfile,
     CoachResult,
+    ImageAnalysisResult,
     PlanResult,
+    ProfileAnswers,
     ProgressStats,
     ToggleExerciseArgs,
 } from '@/lib/types'
@@ -29,6 +33,8 @@ const DEMO_USER: AppUser = {
     username: 'devuser',
     pointsBalance: WELCOME_POINTS,
     createdAt: Date.now(),
+    onboarded: false,
+    language: 'en',
 }
 
 /**
@@ -53,6 +59,8 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         DEFAULT_PACKAGES.map((p, i) => ({ ...p, _id: `pkg_${i}`, active: true })),
     )
     const [exerciseLogs, setExerciseLogs] = useState<AppExerciseLog[]>([])
+    const [profile, setProfile] = useState<AppUserProfile | null>(null)
+    const [coachMessages, setCoachMessages] = useState<AppCoachMessage[]>([])
 
     const askCoach = useCallback(
         async (message: string): Promise<CoachResult> => {
@@ -78,10 +86,49 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
                 },
                 ...t,
             ])
-            return { ok: true, balance: newBalance, response: mockCoachResponse(message, user.name) }
+            const response = mockCoachResponse(message, user.name)
+            setCoachMessages((m) => [
+                ...m,
+                { _id: `cm_${Date.now()}`, userId: user._id, role: 'user', content: message, createdAt: Date.now() },
+                { _id: `cm_${Date.now() + 1}`, userId: user._id, role: 'assistant', content: response, createdAt: Date.now() + 1 },
+            ])
+            return { ok: true, balance: newBalance, response }
         },
         [user],
     )
+
+    const analyzeBodyImage = useCallback(
+        async (storageId: string, note?: string): Promise<ImageAnalysisResult> => {
+            const response =
+                'Demo mode: photo analysis is available in production once a vision model is configured. Upload a clear photo and I will analyze your posture and suggest plan adjustments.'
+            setCoachMessages((m) => [
+                ...m,
+                { _id: `cm_${Date.now()}`, userId: user._id, role: 'user', content: note ? `[Photo] ${note}` : '[Photo]', createdAt: Date.now() },
+                { _id: `cm_${Date.now() + 1}`, userId: user._id, role: 'assistant', content: response, createdAt: Date.now() + 1 },
+            ])
+            return { ok: true, balance: user.pointsBalance, response }
+        },
+        [user],
+    )
+
+    const uploadImage = useCallback(async (_file: File): Promise<string | null> => null, [])
+
+    const saveProfile = useCallback(
+        async (answers: ProfileAnswers, language?: string) => {
+            setProfile({
+                _id: 'profile_demo',
+                userId: user._id,
+                ...answers,
+                updatedAt: Date.now(),
+            })
+            setUser((u) => ({ ...u, onboarded: true, language: language ?? u.language ?? 'en' }))
+        },
+        [user._id],
+    )
+
+    const setLanguage = useCallback(async (language: string) => {
+        setUser((u) => ({ ...u, language }))
+    }, [])
 
     const generatePlan = useCallback(
         async (goal: string, level: string): Promise<PlanResult> => {
@@ -194,14 +241,20 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         isDemo: true,
         ready: true,
         userId: user._id,
-        isNewUser: true,
+        isNewUser: !user.onboarded,
         user,
+        profile,
         transactions,
         plans,
         packages,
         exerciseLogs,
+        coachMessages,
         progress,
         askCoach,
+        analyzeBodyImage,
+        uploadImage,
+        saveProfile,
+        setLanguage,
         generatePlan,
         buyPackage,
         toggleExercise,

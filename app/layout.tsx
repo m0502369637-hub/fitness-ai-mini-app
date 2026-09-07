@@ -6,6 +6,7 @@ import './globals.css'
 import { TelegramProvider } from '@/providers/TelegramProvider'
 import { ConvexClientProvider } from '@/providers/ConvexClientProvider'
 import { AppDataProvider } from '@/providers/AppDataProvider'
+import { LanguageProvider } from '@/lib/i18n/LanguageProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -40,7 +41,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <TelegramProvider>
           <ConvexClientProvider>
-            <AppDataProvider>{children}</AppDataProvider>
+            <AppDataProvider>
+              <LanguageProvider>{children}</LanguageProvider>
+            </AppDataProvider>
           </ConvexClientProvider>
           <Toaster richColors position="top-center" />
         </TelegramProvider>

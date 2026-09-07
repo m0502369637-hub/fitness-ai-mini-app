@@ -1,47 +1,8 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
-import { AI_COACH_COST, PLAN_COST } from "./lib/constants";
-import { generateMockPlan, mockCoachResponse } from "./lib/mock";
+import { PLAN_COST } from "./lib/constants";
+import { generateMockPlan } from "./lib/mock";
 import { validateInitData } from "./lib/telegram";
-
-/**
- * AI Coach — charges AI_COACH_COST points and returns a (mock) response.
- * Balance check and debit happen atomically in this single mutation.
- */
-export const askCoach = mutation({
-  args: { initData: v.string(), message: v.string() },
-  handler: async (ctx, { initData, message }) => {
-    const tgUser = await validateInitData(initData);
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tgId", (q) => q.eq("tgId", String(tgUser.id)))
-      .first();
-    if (!user) throw new Error("User not found — open the app home screen first.");
-
-    if (user.pointsBalance < AI_COACH_COST) {
-      return {
-        ok: false as const,
-        reason: "INSUFFICIENT_POINTS" as const,
-        balance: user.pointsBalance,
-        required: AI_COACH_COST,
-      };
-    }
-
-    const newBalance = user.pointsBalance - AI_COACH_COST;
-    await ctx.db.patch(user._id, { pointsBalance: newBalance });
-    await ctx.db.insert("transactions", {
-      userId: user._id,
-      amount: -AI_COACH_COST,
-      type: "use_ai",
-      description: `-${AI_COACH_COST} AI Coach`,
-      pointsAfter: newBalance,
-      timestamp: Date.now(),
-    });
-
-    const response = mockCoachResponse(message, user.name);
-    return { ok: true as const, balance: newBalance, response };
-  },
-});
 
 /**
  * Workout plan generation — charges PLAN_COST points, generates a (mock) plan,

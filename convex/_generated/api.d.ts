@@ -8,9 +8,13 @@
  * @module
  */
 
+import type * as coach from "../coach.js";
+import type * as coachInternal from "../coachInternal.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_exercises from "../lib/exercises.js";
 import type * as lib_mock from "../lib/mock.js";
+import type * as lib_models from "../lib/models.js";
+import type * as lib_prompts from "../lib/prompts.js";
 import type * as lib_telegram from "../lib/telegram.js";
 import type * as lib_users from "../lib/users.js";
 import type * as packages from "../packages.js";
@@ -28,9 +32,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  coach: typeof coach;
+  coachInternal: typeof coachInternal;
   "lib/constants": typeof lib_constants;
   "lib/exercises": typeof lib_exercises;
   "lib/mock": typeof lib_mock;
+  "lib/models": typeof lib_models;
+  "lib/prompts": typeof lib_prompts;
   "lib/telegram": typeof lib_telegram;
   "lib/users": typeof lib_users;
   packages: typeof packages;

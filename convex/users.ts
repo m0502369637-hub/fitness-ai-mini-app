@@ -44,3 +44,95 @@ export const getByTgId = query({
       .first();
   },
 });
+
+/** Reactive read of the user's onboarding profile (questionnaire answers). */
+export const getProfile = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+  },
+});
+
+const profileArgs = {
+  initData: v.string(),
+  goal: v.string(),
+  level: v.string(),
+  experience: v.string(),
+  weeklyDays: v.number(),
+  equipment: v.array(v.string()),
+  heightCm: v.optional(v.number()),
+  weightKg: v.optional(v.number()),
+  targetWeightKg: v.optional(v.number()),
+  age: v.optional(v.number()),
+  gender: v.optional(v.string()),
+  limitations: v.optional(v.string()),
+  diet: v.optional(v.string()),
+};
+
+/**
+ * Save (upsert) the onboarding questionnaire. Marks the user onboarded and, if
+ * a language is provided, persists their UI language preference.
+ */
+export const saveProfile = mutation({
+  args: { ...profileArgs, language: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const tgUser = await validateInitData(args.initData);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tgId", (q) => q.eq("tgId", String(tgUser.id)))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const existing = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .first();
+
+    const fields = {
+      userId: user._id,
+      goal: args.goal,
+      level: args.level,
+      experience: args.experience,
+      weeklyDays: args.weeklyDays,
+      equipment: args.equipment,
+      heightCm: args.heightCm,
+      weightKg: args.weightKg,
+      targetWeightKg: args.targetWeightKg,
+      age: args.age,
+      gender: args.gender,
+      limitations: args.limitations,
+      diet: args.diet,
+      updatedAt: Date.now(),
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, fields);
+    } else {
+      await ctx.db.insert("userProfiles", fields);
+    }
+
+    const patch: { onboarded: boolean; language?: string } = { onboarded: true };
+    if (args.language) patch.language = args.language;
+    await ctx.db.patch(user._id, patch);
+
+    return { userId: user._id };
+  },
+});
+
+/** Persist the user's UI language preference (en | ar). */
+export const setLanguage = mutation({
+  args: { initData: v.string(), language: v.string() },
+  handler: async (ctx, { initData, language }) => {
+    const tgUser = await validateInitData(initData);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tgId", (q) => q.eq("tgId", String(tgUser.id)))
+      .first();
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(user._id, { language });
+    return { ok: true as const };
+  },
+});

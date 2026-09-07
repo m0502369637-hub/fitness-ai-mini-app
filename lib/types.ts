@@ -10,6 +10,52 @@ export interface AppUser {
   username?: string;
   pointsBalance: number;
   createdAt: number;
+  onboarded?: boolean;
+  language?: string;
+}
+
+/** Structured onboarding questionnaire answers. */
+export interface AppUserProfile {
+  _id: string;
+  userId: string;
+  goal: string;
+  level: string;
+  experience: string;
+  weeklyDays: number;
+  equipment: string[];
+  heightCm?: number;
+  weightKg?: number;
+  targetWeightKg?: number;
+  age?: number;
+  gender?: string;
+  limitations?: string;
+  diet?: string;
+  updatedAt: number;
+}
+
+/** Payload for saving the onboarding questionnaire. */
+export interface ProfileAnswers {
+  goal: string;
+  level: string;
+  experience: string;
+  weeklyDays: number;
+  equipment: string[];
+  heightCm?: number;
+  weightKg?: number;
+  targetWeightKg?: number;
+  age?: number;
+  gender?: string;
+  limitations?: string;
+  diet?: string;
+}
+
+export interface AppCoachMessage {
+  _id: string;
+  userId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  imageStorageId?: string;
+  createdAt: number;
 }
 
 export interface AppTransaction {
@@ -95,7 +141,14 @@ export interface AppPackage {
 
 export type CoachResult =
   | { ok: true; balance: number; response: string }
-  | { ok: false; reason: "INSUFFICIENT_POINTS"; balance: number; required: number };
+  | { ok: false; reason: "INSUFFICIENT_POINTS"; balance: number; required: number }
+  | { ok: false; reason: "LLM_NOT_CONFIGURED"; balance: number; required: number }
+  | { ok: false; reason: "VISION_NOT_CONFIGURED"; balance: number; required: number };
+
+export type ImageAnalysisResult =
+  | { ok: true; balance: number; response: string }
+  | { ok: false; reason: "INSUFFICIENT_POINTS"; balance: number; required: number }
+  | { ok: false; reason: "VISION_NOT_CONFIGURED"; balance: number; required: number };
 
 export type PlanResult =
   | { ok: true; balance: number; plan: GeneratedPlan }
@@ -107,12 +160,18 @@ export interface AppData {
   userId: string | null;
   isNewUser: boolean;
   user: AppUser | null;
+  profile: AppUserProfile | null;
   transactions: AppTransaction[];
   plans: AppPlan[];
   packages: AppPackage[];
   exerciseLogs: AppExerciseLog[];
+  coachMessages: AppCoachMessage[];
   progress: ProgressStats;
   askCoach: (message: string) => Promise<CoachResult>;
+  analyzeBodyImage: (storageId: string, note?: string) => Promise<ImageAnalysisResult>;
+  uploadImage: (file: File) => Promise<string | null>;
+  saveProfile: (answers: ProfileAnswers, language?: string) => Promise<void>;
+  setLanguage: (language: string) => Promise<void>;
   generatePlan: (goal: string, level: string) => Promise<PlanResult>;
   buyPackage: (pkg: AppPackage) => Promise<void>;
   toggleExercise: (args: ToggleExerciseArgs) => Promise<void>;

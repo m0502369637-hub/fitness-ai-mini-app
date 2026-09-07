@@ -1,11 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { toast } from 'sonner'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { AppData, AppPackage, CoachResult, PlanResult, ToggleExerciseArgs } from '@/lib/types'
+import {
+    AppData,
+    AppPackage,
+    CoachResult,
+    ImageAnalysisResult,
+    PlanResult,
+    ProfileAnswers,
+    ToggleExerciseArgs,
+} from '@/lib/types'
 import { AppDataContext } from '@/lib/appDataContext'
 import { useTelegram } from './TelegramProvider'
 
@@ -22,15 +30,21 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
     const ranRef = useRef(false)
 
     const ensureUser = useMutation(api.users.ensureUser)
-    const askCoachMutation = useMutation(api.points.askCoach)
+    const askCoachAction = useAction(api.coach.askCoach)
+    const analyzeBodyImageAction = useAction(api.coach.analyzeBodyImage)
+    const generateUploadUrlMutation = useMutation(api.coach.generateUploadUrl)
+    const saveProfileMutation = useMutation(api.users.saveProfile)
+    const setLanguageMutation = useMutation(api.users.setLanguage)
     const generatePlanMutation = useMutation(api.points.generatePlan)
     const toggleExerciseMutation = useMutation(api.workoutLogs.toggleExercise)
 
     const user = useQuery(api.users.getUser, userId ? { userId } : 'skip')
+    const profile = useQuery(api.users.getProfile, userId ? { userId } : 'skip')
     const transactions = useQuery(api.transactions.listByUser, userId ? { userId } : 'skip') ?? []
     const plans = useQuery(api.workoutPlans.listByUser, userId ? { userId } : 'skip') ?? []
     const packages = useQuery(api.packages.list, {}) ?? []
     const exerciseLogs = useQuery(api.workoutLogs.listByUser, userId ? { userId } : 'skip') ?? []
+    const coachMessages = useQuery(api.coach.listMessages, userId ? { userId } : 'skip') ?? []
     const progress = useQuery(api.workoutLogs.progressStats, userId ? { userId } : 'skip')
 
     useEffect(() => {
@@ -57,9 +71,55 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
             if (!initData || !userId) {
                 return { ok: false, reason: 'INSUFFICIENT_POINTS', balance: 0, required: 0 }
             }
-            return askCoachMutation({ initData, message })
+            return askCoachAction({ initData, message })
         },
-        [webApp, userId, askCoachMutation],
+        [webApp, userId, askCoachAction],
+    )
+
+    const analyzeBodyImage = useCallback(
+        async (storageId: string, note?: string): Promise<ImageAnalysisResult> => {
+            const initData = webApp?.initData
+            if (!initData || !userId) {
+                return { ok: false, reason: 'VISION_NOT_CONFIGURED', balance: 0, required: 0 }
+            }
+            return analyzeBodyImageAction({ initData, storageId: storageId as Id<'_storage'>, note })
+        },
+        [webApp, userId, analyzeBodyImageAction],
+    )
+
+    const uploadImage = useCallback(
+        async (file: File): Promise<string | null> => {
+            const initData = webApp?.initData
+            if (!initData || !userId) return null
+            const { uploadUrl } = await generateUploadUrlMutation({ initData })
+            const res = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': file.type || 'application/octet-stream' },
+                body: file,
+            })
+            if (!res.ok) throw new Error('Image upload failed')
+            const { storageId } = await res.json()
+            return storageId as string
+        },
+        [webApp, userId, generateUploadUrlMutation],
+    )
+
+    const saveProfile = useCallback(
+        async (answers: ProfileAnswers, language?: string) => {
+            const initData = webApp?.initData
+            if (!initData || !userId) return
+            await saveProfileMutation({ initData, ...answers, language })
+        },
+        [webApp, userId, saveProfileMutation],
+    )
+
+    const setLanguage = useCallback(
+        async (language: string) => {
+            const initData = webApp?.initData
+            if (!initData || !userId) return
+            await setLanguageMutation({ initData, language })
+        },
+        [webApp, userId, setLanguageMutation],
     )
 
     const generatePlan = useCallback(
@@ -98,8 +158,6 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
                 if (status === 'paid') {
                     toast.success('Payment received — points credited!')
                 }
-                // NOTE: the client callback is never used to grant points — the
-                // authoritative credit happens via the successful_payment webhook.
             })
         },
         [webApp],
@@ -127,12 +185,18 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
         userId,
         isNewUser,
         user: user ?? null,
+        profile: profile ?? null,
         transactions,
         plans,
         packages,
         exerciseLogs,
+        coachMessages,
         progress: progress ?? { today: 0, week: 0, month: 0, all: 0 },
         askCoach,
+        analyzeBodyImage,
+        uploadImage,
+        saveProfile,
+        setLanguage,
         generatePlan,
         buyPackage,
         toggleExercise,

@@ -27,6 +27,7 @@ export async function resolveOrCreateUser(
     username,
     pointsBalance: WELCOME_POINTS,
     createdAt: Date.now(),
+    onboarded: false,
   });
 
   await db.insert("transactions", {
