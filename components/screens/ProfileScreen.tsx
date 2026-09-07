@@ -108,6 +108,17 @@ export function ProfileScreen({
         </div>
         <HistoryList transactions={transactions} />
       </div>
+
+      <p className="text-center text-xs text-[var(--c-muted)]">
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          Privacy Policy
+        </a>
+      </p>
     </div>
   )
 }

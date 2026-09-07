@@ -339,15 +339,19 @@ function ExerciseRow({
   done: boolean
   onToggle: (completed: boolean) => void
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [expanded, setExpanded] = useState(false)
 
   // Resolve rich media for this exercise. New plans carry images/instructions
   // inline; older plans (or demo data) fall back to a catalog lookup by id/name.
+  // In Arabic, prefer the catalog's localized name + instructions.
   const cat = findCatalogExercise(ex.exerciseId ?? ex.name)
+  const isAr = lang === 'ar'
   const images = ex.images && ex.images.length > 0 ? ex.images : (cat?.images ?? [])
-  const instructions =
-    ex.instructions && ex.instructions.length > 0
+  const name = isAr && cat?.nameAr ? cat.nameAr : ex.name
+  const instructions = isAr && cat?.instructionsAr && cat.instructionsAr.length > 0
+    ? cat.instructionsAr
+    : ex.instructions && ex.instructions.length > 0
       ? ex.instructions
       : (cat?.instructions ?? [])
   const muscles =
@@ -392,7 +396,7 @@ function ExerciseRow({
         {/* Details */}
         <button onClick={() => setExpanded((e) => !e)} className="flex-1 min-w-0 text-start">
           <p className={clsx('font-bold text-sm', done ? 'text-[var(--c-muted)] line-through' : 'text-[var(--c-text)]')}>
-            {ex.name}
+            {name}
           </p>
           <p className="text-[11px] text-[var(--c-muted)] truncate">{muscles}</p>
           <p className="text-[11px] font-semibold text-[var(--c-accent)]">
@@ -435,7 +439,7 @@ function ExerciseRow({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={src}
-                      alt={`${ex.name} — form ${i + 1}`}
+                      alt={`${name} — form ${i + 1}`}
                       loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover"
                       onError={(e) => {

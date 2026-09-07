@@ -12,6 +12,8 @@ import {
     AppUserProfile,
     CoachResult,
     ImageAnalysisResult,
+    PlanEditOperation,
+    PlanEditResult,
     PlanResult,
     ProfileAnswers,
     ProgressStats,
@@ -112,6 +114,66 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
     )
 
     const uploadImage = useCallback(async (_file: File): Promise<string | null> => null, [])
+
+    const proposePlanEdit = useCallback(
+        async (_request: string): Promise<PlanEditResult> => {
+            const latest = plans[0]
+            if (!latest) {
+                return { ok: false, reason: 'NO_PLAN', balance: user.pointsBalance, required: 0 }
+            }
+            return {
+                ok: true,
+                balance: user.pointsBalance,
+                planId: latest._id,
+                proposal: {
+                    summary: 'Demo proposal: bump the first exercise to 4 sets.',
+                    operations: [{ type: 'update', dayIndex: 0, exerciseIndex: 0, sets: 4 }],
+                },
+            }
+        },
+        [plans, user.pointsBalance],
+    )
+
+    const applyPlanEdit = useCallback(async (planId: string, operations: PlanEditOperation[]) => {
+        setPlans((prev) =>
+            prev.map((p) => {
+                if (p._id !== planId) return p
+                const days = p.days.map((d) => ({ ...d, exercises: d.exercises.map((e) => ({ ...e })) }))
+                for (const op of operations) {
+                    const day = days[op.dayIndex]
+                    if (!day) continue
+                    if (op.type === 'update') {
+                        const ex = day.exercises[op.exerciseIndex ?? -1]
+                        if (!ex) continue
+                        if (op.sets != null) ex.sets = op.sets
+                        if (op.reps != null) ex.reps = op.reps
+                    } else if (op.type === 'replace') {
+                        const i = op.exerciseIndex ?? -1
+                        const old = day.exercises[i]
+                        if (!old) continue
+                        day.exercises[i] = {
+                            ...old,
+                            name: op.name ?? old.name,
+                            exerciseId: op.exerciseId ?? old.exerciseId,
+                            sets: op.sets ?? old.sets,
+                            reps: op.reps ?? old.reps,
+                        }
+                    } else if (op.type === 'add') {
+                        day.exercises.push({
+                            name: op.name ?? 'Exercise',
+                            sets: op.sets ?? 3,
+                            reps: op.reps ?? '8–12',
+                            exerciseId: op.exerciseId,
+                        })
+                    } else if (op.type === 'remove') {
+                        const i = op.exerciseIndex ?? -1
+                        if (i >= 0 && i < day.exercises.length) day.exercises.splice(i, 1)
+                    }
+                }
+                return { ...p, days }
+            }),
+        )
+    }, [])
 
     const saveProfile = useCallback(
         async (answers: ProfileAnswers, language?: string) => {
@@ -253,6 +315,8 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         askCoach,
         analyzeBodyImage,
         uploadImage,
+        proposePlanEdit,
+        applyPlanEdit,
         saveProfile,
         setLanguage,
         generatePlan,

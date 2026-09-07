@@ -150,6 +150,27 @@ export type ImageAnalysisResult =
   | { ok: false; reason: "INSUFFICIENT_POINTS"; balance: number; required: number }
   | { ok: false; reason: "VISION_NOT_CONFIGURED"; balance: number; required: number };
 
+/** A single structured plan change, produced by the AI and approved by the user. */
+export type PlanEditOperation =
+  | { type: 'update'; dayIndex: number; exerciseIndex: number; sets?: number; reps?: string }
+  | { type: 'replace'; dayIndex: number; exerciseIndex: number; name: string; exerciseId?: string; sets?: number; reps?: string }
+  | { type: 'add'; dayIndex: number; name: string; exerciseId?: string; sets?: number; reps?: string }
+  | { type: 'remove'; dayIndex: number; exerciseIndex: number };
+
+export interface PlanEditProposal {
+  summary: string;
+  operations: PlanEditOperation[];
+}
+
+export type PlanEditResult =
+  | { ok: true; balance: number; planId: string; proposal: PlanEditProposal }
+  | {
+      ok: false;
+      reason: 'INSUFFICIENT_POINTS' | 'LLM_NOT_CONFIGURED' | 'NO_PLAN' | 'INVALID_PROPOSAL';
+      balance: number;
+      required: number;
+    };
+
 export type PlanResult =
   | { ok: true; balance: number; plan: GeneratedPlan }
   | { ok: false; reason: "INSUFFICIENT_POINTS"; balance: number; required: number };
@@ -170,6 +191,8 @@ export interface AppData {
   askCoach: (message: string) => Promise<CoachResult>;
   analyzeBodyImage: (storageId: string, note?: string) => Promise<ImageAnalysisResult>;
   uploadImage: (file: File) => Promise<string | null>;
+  proposePlanEdit: (request: string) => Promise<PlanEditResult>;
+  applyPlanEdit: (planId: string, operations: PlanEditOperation[]) => Promise<void>;
   saveProfile: (answers: ProfileAnswers, language?: string) => Promise<void>;
   setLanguage: (language: string) => Promise<void>;
   generatePlan: (goal: string, level: string) => Promise<PlanResult>;

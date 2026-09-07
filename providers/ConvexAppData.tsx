@@ -10,6 +10,8 @@ import {
     AppPackage,
     CoachResult,
     ImageAnalysisResult,
+    PlanEditOperation,
+    PlanEditResult,
     PlanResult,
     ProfileAnswers,
     ToggleExerciseArgs,
@@ -32,6 +34,8 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
     const ensureUser = useMutation(api.users.ensureUser)
     const askCoachAction = useAction(api.coach.askCoach)
     const analyzeBodyImageAction = useAction(api.coach.analyzeBodyImage)
+    const proposePlanEditAction = useAction(api.coach.proposePlanEdit)
+    const applyPlanEditMutation = useMutation(api.coach.applyPlanEdit)
     const generateUploadUrlMutation = useMutation(api.coach.generateUploadUrl)
     const saveProfileMutation = useMutation(api.users.saveProfile)
     const setLanguageMutation = useMutation(api.users.setLanguage)
@@ -85,6 +89,42 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
             return analyzeBodyImageAction({ initData, storageId: storageId as Id<'_storage'>, note })
         },
         [webApp, userId, analyzeBodyImageAction],
+    )
+
+    const proposePlanEdit = useCallback(
+        async (request: string): Promise<PlanEditResult> => {
+            const initData = webApp?.initData
+            if (!initData || !userId) {
+                return { ok: false, reason: 'NO_PLAN', balance: 0, required: 0 }
+            }
+            const res = await proposePlanEditAction({ initData, request })
+            if (res.ok) {
+                return {
+                    ok: true,
+                    balance: res.balance,
+                    planId: res.planId,
+                    proposal: {
+                        summary: res.proposal.summary,
+                        operations: res.proposal.operations as PlanEditOperation[],
+                    },
+                }
+            }
+            return res
+        },
+        [webApp, userId, proposePlanEditAction],
+    )
+
+    const applyPlanEdit = useCallback(
+        async (planId: string, operations: PlanEditOperation[]) => {
+            const initData = webApp?.initData
+            if (!initData || !userId) return
+            await applyPlanEditMutation({
+                initData,
+                planId: planId as Id<'workoutPlans'>,
+                operations,
+            })
+        },
+        [webApp, userId, applyPlanEditMutation],
     )
 
     const uploadImage = useCallback(
@@ -195,6 +235,8 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
         askCoach,
         analyzeBodyImage,
         uploadImage,
+        proposePlanEdit,
+        applyPlanEdit,
         saveProfile,
         setLanguage,
         generatePlan,

@@ -1,17 +1,19 @@
 // convex/lib/exercises.ts
 // Curated exercise catalog vendored from the public-domain free-exercise-db
 // (https://github.com/yuhonas/free-exercise-db) — Unlicense.
-// Images are served from the jsDelivr CDN mirror of the library's GitHub assets
-// for fast, reliable loading inside the Telegram Mini App webview.
+// Images are served from the jsDelivr CDN mirror of the library's GitHub assets.
+// Arabic names/instructions are provided so the plan UI can be localized.
 
 export interface CatalogExercise {
   id: string;
   name: string;
+  nameAr: string;
   level: string | null;
   equipment: string | null;
   primaryMuscles: string[];
   secondaryMuscles: string[];
   instructions: string[];
+  instructionsAr: string[];
   images: string[];
 }
 
@@ -22,6 +24,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Barbell_Bench_Press_-_Medium_Grip",
       "name": "Barbell Bench Press - Medium Grip",
+      "nameAr": "ضغط البنش بالبار - قبضة متوسطة",
       "level": "beginner",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -38,6 +41,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement for the prescribed amount of repetitions.",
         "When you are done, place the bar back in the rack."
       ],
+      "instructionsAr": [
+        "استلقِ على ظهرك على مقعد مسطح. باستخدام قبضة متوسطة العرض (قبضة تشكّل زاوية 90 درجة في منتصف الحركة بين الساعدين والعضدين)، ارفع البار من الحامل وأمسكه مستقيمًا فوقك مع تمديد ذراعيك بالكامل. هذا هو وضع البداية.",
+        "من وضع البداية، استنشق وابدأ بالنزول ببطء حتى يلمس البار منتصف صدرك.",
+        "بعد توقف قصير، ادفع البار إلى وضع البداية مع الزفير. ركّز على دفع البار باستخدام عضلات الصدر. افرد ذراعيك واقبض عضلات صدرك في وضع الانقباض عند قمة الحركة، واثبت لثانية واحدة ثم ابدأ بالنزول ببطء مرة أخرى. نصيحة: من المثالي أن يستغرق خفض الوزن ضعف الوقت الذي يستغرقه رفعه تقريبًا.",
+        "كرر الحركة لعدد التكرارات المحدد.",
+        "عند الانتهاء، أعد البار إلى الحامل."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg"
@@ -46,6 +56,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Pushups",
       "name": "Pushups",
+      "nameAr": "تمارين الضغط",
       "level": "beginner",
       "equipment": "body only",
       "primaryMuscles": [
@@ -61,6 +72,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Now breathe out and press your upper body back up to the starting position while squeezing your chest.",
         "After a brief pause at the top contracted position, you can begin to lower yourself downward again for as many repetitions as needed."
       ],
+      "instructionsAr": [
+        "استلقِ على الأرض ووجهك لأسفل، وضع يديك على مسافة حوالي 36 بوصة، مع رفع جذعك للأعلى مع استقامة الذراعين.",
+        "بعد ذلك، اخفض جسمك إلى الأسفل حتى يقترب صدرك من لمس الأرض تقريبًا أثناء الشهيق.",
+        "الآن قم بالزفير وادفع الجزء العلوي من جسمك للأعلى للعودة إلى وضع البداية مع الضغط على عضلات الصدر.",
+        "بعد توقف قصير في الأعلى عند وضع الانقباض، يمكنك البدء في خفض نفسك للأسفل مرة أخرى لأداء عدد التكرارات التي تحتاجها."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pushups/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pushups/1.jpg"
@@ -69,6 +86,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Incline_Dumbbell_Press",
       "name": "Incline Dumbbell Press",
+      "nameAr": "ضغط الدمبل على المقعد المائل",
       "level": "beginner",
       "equipment": "dumbbell",
       "primaryMuscles": [
@@ -87,6 +105,15 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement for the prescribed amount of repetitions.",
         "When you are done, place the dumbbells back on your thighs and then on the floor. This is the safest manner to release the dumbbells."
       ],
+      "instructionsAr": [
+        "استلقِ على مقعد مائل مع إمساك دمبل في كل يد فوق فخذيك، بحيث تتجه راحتا اليدين نحو بعضهما البعض.",
+        "بعد ذلك، استخدم فخذيك للمساعدة في دفع الدمبلين للأعلى، وارفع كل دمبل على حدة حتى تمسكهما بعرض الكتفين.",
+        "عندما ترفع الدمبلين إلى عرض الكتفين، أدر معصميك إلى الأمام بحيث تتجه راحتا اليدين بعيدًا عنك. هذا سيكون وضع البداية.",
+        "احرص على التحكم الكامل بالدمبلين طوال الوقت. ثم ازفر وادفع الدمبلين للأعلى باستخدام عضلات الصدر.",
+        "ثبّت ذراعيك في الأعلى، وتوقف لثانية واحدة، ثم ابدأ بإنزال الوزن ببطء. نصيحة: من الأفضل أن يستغرق إنزال الأوزان ضعف الوقت الذي يستغرقه رفعها تقريبًا.",
+        "كرر الحركة لعدد التكرارات المحدد.",
+        "عند الانتهاء، أعد الدمبلين إلى فخذيك ثم إلى الأرض. هذه هي الطريقة الأكثر أمانًا لإنزال الدمبلين."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Incline_Dumbbell_Press/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Incline_Dumbbell_Press/1.jpg"
@@ -95,6 +122,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Cable_Crossover",
       "name": "Cable Crossover",
+      "nameAr": "تمرين تقاطع الكابلات",
       "level": "beginner",
       "equipment": "cable",
       "primaryMuscles": [
@@ -110,6 +138,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Return your arms back to the starting position as you breathe out. Make sure to use the same arc of motion used to lower the weights.",
         "Hold for a second at the starting position and repeat the movement for the prescribed amount of repetitions."
       ],
+      "instructionsAr": [
+        "للوصول إلى وضع البداية، ضع البكرات في وضع مرتفع (فوق رأسك)، واختر المقاومة المطلوبة، وامسك البكرتين في كل يد.",
+        "تقدَّم إلى الأمام أمام خط مستقيم وهمي بين البكرتين مع سحب ذراعيك معًا أمامك. يجب أن يكون جذعك منحنيًا قليلًا إلى الأمام من الخصر. سيكون هذا وضع البداية.",
+        "مع ثنيٍّ بسيط في المرفقين لتجنّب الضغط على وتر العضلة ذات الرأسين، مدّ ذراعيك إلى الجانبين (مستقيمتين على كلا الجانبين) في قوس واسع حتى تشعر بتمدد في صدرك. استنشق الهواء أثناء أداء هذا الجزء من الحركة. تلميح: تذكّر أنه طوال الحركة يجب أن يظل الذراعان والجذع ثابتين؛ ويجب أن تحدث الحركة فقط عند مفصل الكتف.",
+        "أعد ذراعيك إلى وضع البداية مع الزفير. تأكد من استخدام نفس قوس الحركة الذي استخدمته لإنزال الأوزان.",
+        "توقف لثانية واحدة عند وضع البداية، ثم كرر الحركة لعدد التكرارات المحدد."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crossover/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crossover/1.jpg"
@@ -118,6 +153,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Dips_-_Chest_Version",
       "name": "Dips - Chest Version",
+      "nameAr": "غطس - نسخة الصدر",
       "level": "intermediate",
       "equipment": "other",
       "primaryMuscles": [
@@ -133,6 +169,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Once you feel the stretch, use your chest to bring your body back to the starting position as you breathe out. Tip: Remember to squeeze the chest at the top of the movement for a second.",
         "Repeat the movement for the prescribed amount of repetitions."
       ],
+      "instructionsAr": [
+        "لهذا التمرين ستحتاج إلى قضيبين متوازيين. للوصول إلى وضع البداية، امسك جسمك فوق القضيبين مع فرد ذراعيك بالكامل (قفل المرفقين).",
+        "أثناء الشهيق، انزل بجسمك ببطء مع إمالة جذعك إلى الأمام حوالي 30 درجة وإبعاد مرفقيك قليلاً إلى الجانبين حتى تشعر بتمدد خفيف في الصدر.",
+        "بمجرد أن تشعر بالتمدد، استخدم عضلات صدرك لإعادة جسمك إلى وضع البداية أثناء الزفير. نصيحة: اضغط ببطء على عضلات صدرك في أعلى الحركة لثانية واحدة.",
+        "كرر الحركة لعدد التكرارات المحدد."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Dips_-_Chest_Version/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Dips_-_Chest_Version/1.jpg"
@@ -141,6 +183,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Standing_Military_Press",
       "name": "Standing Military Press",
+      "nameAr": "الضغط العسكري واقفًا",
       "level": "beginner",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -157,6 +200,14 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Lift the bar back up to the starting position as you exhale.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "ابدأ بوضع بار حديدي على ارتفاع الصدر تقريبًا على حامل القرفصاء. بعد اختيار الأوزان، أمسك البار بقبضة أمامية (راحتا اليدين متجهتان إلى الأمام). تأكد من إمساك البار بعرض أوسع من عرض الكتفين.",
+        "اثنِ ركبتيك قليلًا وضع البار على عظمة الترقوة. ارفع البار مع إبقائه مستندًا على صدرك. خُذ خطوة إلى الخلف واجعل قدميك بعرض الكتفين.",
+        "بعد إمساك البار بالقبضة الصحيحة، ارفع البار فوق رأسك مع فرد ذراعيك. أمسِكه عند مستوى الكتف تقريبًا وأمام رأسك قليلًا. هذا هو وضع البداية.",
+        "انزِل البار ببطء نحو عظمة الترقوة وأنت تتنفس شهيقًا.",
+        "ارفع البار مرة أخرى إلى وضع البداية وأنت تتنفس زفيرًا.",
+        "كرر الحركة لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Standing_Military_Press/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Standing_Military_Press/1.jpg"
@@ -165,6 +216,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Side_Lateral_Raise",
       "name": "Side Lateral Raise",
+      "nameAr": "الرفرفة الجانبية",
       "level": "beginner",
       "equipment": "dumbbell",
       "primaryMuscles": [
@@ -177,6 +229,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Lower the dumbbells back down slowly to the starting position as you inhale.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "اختر زوجًا من الدمبلات، وقف باستقامةٍ مع جذعٍ مستقيم، والدمبلان بجانبك على طول ذراعيك، وراحتا يديك مواجهتان لك. هذه هي وضعية البداية.",
+        "مع إبقاء الجذع ثابتًا (بدون تأرجح)، ارفع الدمبلين إلى جانبيك مع ثنيٍّ خفيف في المرفقين وإمالة اليدين قليلًا إلى الأمام كما لو كنت تصب الماء في كوب. واصل الصعود حتى يصبح ذراعاك موازيين للأرض. قم بالزفير أثناء أداء هذه الحركة وتوقف لثانية واحدة في الأعلى.",
+        "أنزل الدمبلين ببطء إلى وضعية البداية أثناء الشهيق.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Side_Lateral_Raise/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Side_Lateral_Raise/1.jpg"
@@ -185,6 +243,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Front_Dumbbell_Raise",
       "name": "Front Dumbbell Raise",
+      "nameAr": "رفع الدمبل الأمامي",
       "level": "beginner",
       "equipment": "dumbbell",
       "primaryMuscles": [
@@ -197,6 +256,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Now lower the dumbbell back down slowly to the starting position as you simultaneously lift the right dumbbell.",
         "Continue alternating in this fashion until all of the recommended amount of repetitions have been performed for each arm."
       ],
+      "instructionsAr": [
+        "اختر زوجًا من الدمبل وقف باستقامة جذعك، مع إمساك الدمبل أمام فخذيك بطول الذراعين، بحيث تكون راحتا اليدين مواجهتين لفخذيك. هذه هي وضعية البداية.",
+        "أبقِ جذعك ثابتًا (بدون تمايل)، وارفع الدمبل الأيسر إلى الأمام مع ثنيٍّ خفيف في المرفق، مع إبقاء راحتي اليدين مواجهتين للأسفل دائمًا. استمر في الصعود حتى يصبح ذراعك أعلى قليلًا من مستوى موازٍ للأرض. قم بالزفير أثناء تنفيذ هذا الجزء من الحركة، وتوقف للحظة واحدة في الأعلى. استنشق بعد هذا التوقف القصير.",
+        "الآن أنزل الدمبل الأيسر ببطء إلى وضعية البداية، بينما ترفع في الوقت نفسه الدمبل الأيمن.",
+        "استمر في التناوب بهذه الطريقة حتى تكتمل جميع التكرارات الموصى بها لكل ذراع."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Dumbbell_Raise/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Dumbbell_Raise/1.jpg"
@@ -205,6 +270,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Face_Pull",
       "name": "Face Pull",
+      "nameAr": "سحب الوجه",
       "level": "intermediate",
       "equipment": "cable",
       "primaryMuscles": [
@@ -216,6 +282,11 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
       "instructions": [
         "Facing a high pulley with a rope or dual handles attached, pull the weight directly towards your face, separating your hands as you do so. Keep your upper arms parallel to the ground."
       ],
+      "instructionsAr": [
+        "قف مواجِهًا بكرة علوية مجهزة بحبل أو مقبضين مزدوجين.",
+        "اسحب الوزن مباشرةً نحو وجهك مع تفريج يديك أثناء السحب.",
+        "أبقِ عضديك متوازيين مع الأرض."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Face_Pull/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Face_Pull/1.jpg"
@@ -224,6 +295,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Triceps_Pushdown",
       "name": "Triceps Pushdown",
+      "nameAr": "دفع الترايسيبس لأسفل",
       "level": "beginner",
       "equipment": "cable",
       "primaryMuscles": [
@@ -237,6 +309,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "After a second hold at the contracted position, bring the bar slowly up to the starting point. Breathe in as you perform this step.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "ثبّت قضيبًا مستقيمًا أو قضيبًا بزاوية في بكرة عالية وأمسك به بقبضة علوية (راحتا اليدين للأسفل) بعرض الكتفين.",
+        "قف منتصبًا مع استقامة الجذع وإمالة طفيفة جدًا إلى الأمام، وقرّب العضدين من جسمك بحيث يكونان عموديين على الأرض. يجب أن يشير الساعدان إلى الأعلى نحو البكرة أثناء إمساكهما بالقضيب. هذا هو وضع البداية.",
+        "باستخدام عضلة ثلاثية الرؤوس (الترايسيبس)، أنزل القضيب حتى يلمس الجزء الأمامي من فخذيك وتكون الذراعان ممدودتين بالكامل بشكل عمودي على الأرض. يجب أن يظل العضدان ثابتين دائمًا بجانب جذعك، ولا يتحرك إلا الساعدان. قم بالزفير أثناء أداء هذه الحركة.",
+        "بعد تثبيت لمدة ثانية في وضع الانقباض، ارفع القضيب ببطء إلى نقطة البداية. قم بالشهيق أثناء أداء هذه الخطوة.",
+        "كرر لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Triceps_Pushdown/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Triceps_Pushdown/1.jpg"
@@ -247,6 +326,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Pullups",
       "name": "Pullups",
+      "nameAr": "تمرين السحب لأعلى",
       "level": "beginner",
       "equipment": "body only",
       "primaryMuscles": [
@@ -263,6 +343,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "After a second on the contracted position, start to inhale and slowly lower your torso back to the starting position when your arms are fully extended and the lats are fully stretched.",
         "Repeat this motion for the prescribed amount of repetitions."
       ],
+      "instructionsAr": [
+        "أمسك بقضيب السحب بحيث تكون راحتا اليدين مواجهتين للأمام وباستخدام المسكة المحددة. ملاحظة حول المسكات: بالنسبة للمسكة الواسعة، يجب أن تكون المسافة بين يديك أوسع من عرض كتفيك. بالنسبة للمسكة المتوسطة، يجب أن تكون المسافة بين يديك مساوية لعرض كتفيك. بالنسبة للمسكة الضيقة، يجب أن تكون المسافة بين يديك أصغر من عرض كتفيك.",
+        "بينما ذراعاك ممتدتان أمامك وتمسكان بالقضيب بعرض المسكة المختار، أرجِع جذعك إلى الخلف بزاوية 30 درجة تقريبًا مع إحداث تقوّس في أسفل ظهرك وإبراز صدرك إلى الأمام. هذا هو وضع البداية.",
+        "اسحب جذعك إلى الأعلى حتى يلمس القضيب الجزء العلوي من صدرك، عن طريق سحب الكتفين والجزء العلوي من الذراعين إلى الأسفل وإلى الخلف. أخرِج الزفير أثناء أداء هذا الجزء من الحركة. نصيحة: ركّز على ضغط عضلات الظهر عند بلوغ وضع الانقباض الكامل. يجب أن يبقى الجزء العلوي من الجذع ثابتًا أثناء تحركه في الفضاء، وأن تتحرك الذراعان فقط. وينبغي ألّا تقوم الساعدان بأي عمل آخر سوى الإمساك بالقضيب.",
+        "بعد ثانية واحدة في وضع الانقباض، ابدأ بالشهيق وأنزِل جذعك ببطء إلى وضع البداية عندما تكون ذراعاك ممتدتين بالكامل والعضلات العريضة في ظهرك مشدودة بالكامل.",
+        "كرّر هذه الحركة لعدد التكرارات المحدد."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pullups/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Pullups/1.jpg"
@@ -271,6 +358,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Full_Range-Of-Motion_Lat_Pulldown",
       "name": "Full Range-Of-Motion Lat Pulldown",
+      "nameAr": "سحب اللاتيسيميوس بنطاق حركة كامل",
       "level": "intermediate",
       "equipment": "cable",
       "primaryMuscles": [
@@ -285,6 +373,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Either standing or seated on a high bench, grasp two stirrup cables that are attached to the high pulleys. Grab with the opposing hand so your arms are crisscrossed about you and your palms are facing forward.",
         "Keeping your chest up and maintaining a slight arch in your lower back, pull the handles down as if you were doing a regular pulldown. The range of motion will be more of an arc. During the movement, rotate your hands so that in the bottom position your palms face each other rather than forward. Return slowly to the starting position and repeat."
       ],
+      "instructionsAr": [
+        "إمّا بالوقوف أو الجلوس على مقعد مرتفع، أمسك كابلي الركاب المتصلين بالبكرات العلوية. أمسك كل كابل باليد المقابلة بحيث تتقاطع ذراعاك أمام جسمك وتتجه راحتا يديك إلى الأمام.",
+        "أبقِ صدرك مرفوعًا مع الحفاظ على تقوّس خفيف في أسفل الظهر، واسحب المقابض إلى الأسفل كما لو كنت تؤدي تمرين السحب العادي. سيكون نطاق الحركة أقرب إلى القوس. أثناء الحركة، أدر يديك بحيث تتواجه راحتا اليدين في الوضعية السفلية بدلًا من أن تتجها إلى الأمام. عُد ببطء إلى وضع البداية وكرّر."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Full_Range-Of-Motion_Lat_Pulldown/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Full_Range-Of-Motion_Lat_Pulldown/1.jpg"
@@ -293,6 +385,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Bent_Over_Barbell_Row",
       "name": "Bent Over Barbell Row",
+      "nameAr": "تمرين التجديف بالبار مع الانحناء للأمام",
       "level": "beginner",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -309,6 +402,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Then inhale and slowly lower the barbell back to the starting position.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "أمسك البار بقبضة أمامية (بحيث تكون راحتا اليدين متجهتين للأسفل)، واثنِ ركبتيك قليلاً ومل جذعك للأمام بالانحناء عند الخصر مع إبقاء الظهر مستقيماً حتى يصبح موازياً تقريباً للأرض. ملاحظة: تأكد من رفع رأسك. يجب أن يتدلى البار مباشرة أمامك بينما يتدلى ذراعاك عمودياً على الأرض وعلى جذعك. هذا هو وضع البداية.",
+        "الآن، مع إبقاء الجذع ثابتاً، أخرج الزفير وارفع البار نحوك. أبقِ المرفقين قريبين من جسمك واستخدم ساعديك فقط لحمل الوزن. في وضع الانقباض الأعلى، اضغط على عضلات الظهر واحتفظ بالوضعية للحظات وجيزة.",
+        "ثم استنشق واخفض البار ببطء إلى وضع البداية.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bent_Over_Barbell_Row/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bent_Over_Barbell_Row/1.jpg"
@@ -317,6 +416,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Seated_Cable_Rows",
       "name": "Seated Cable Rows",
+      "nameAr": "تمرين سحب الكابل من وضع الجلوس",
       "level": "beginner",
       "equipment": "cable",
       "primaryMuscles": [
@@ -334,6 +434,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Keeping the torso stationary, pull the handles back towards your torso while keeping the arms close to it until you touch the abdominals. Breathe out as you perform that movement. At that point you should be squeezing your back muscles hard. Hold that contraction for a second and slowly go back to the original position while breathing in.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "ستحتاج لهذا التمرين إلى جهاز بكرة منخفض بمقبض على شكل حرف V. ملاحظة: المقبض V يتيح لك قبضة محايدة تتجه فيها راحتا يديك نحو بعضهما. للوصول إلى وضع البداية، اجلس على الجهاز وضع قدميك على المنصة الأمامية أو العارضة المتوفرة، مع التأكد من أن ركبتيك مثنيتان قليلًا وغير مقفلتين.",
+        "انحنِ إلى الأمام مع الحفاظ على المحاذاة الطبيعية لظهرك، وامسك بمقابض المقبض V.",
+        "مع تمديد ذراعيك، اسحب جسمك إلى الخلف حتى يصبح جذعك بزاوية 90 درجة مع ساقيك. يجب أن يكون ظهرك مقوسًا قليلًا وصدرك بارزًا، وستشعر بتمدد جيد في عضلات ظهرك العريضة أثناء إمساكك بالمقبض أمامك. هذا هو وضع البداية.",
+        "أبقِ جذعك ثابتًا، واسحب المقابض نحو جذعك مع إبقاء الذراعين قريبين منه حتى تلامس بطنك. أخرج الزفير أثناء هذه الحركة. عند هذه النقطة اضغط على عضلات ظهرك بقوة، واثبت على هذا الانقباض لثانية واحدة ثم عد ببطء إلى الوضع الأصلي مع الشهيق.",
+        "كرر الحركة لعدد المرات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Seated_Cable_Rows/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Seated_Cable_Rows/1.jpg"
@@ -342,6 +449,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "One-Arm_Dumbbell_Row",
       "name": "One-Arm Dumbbell Row",
+      "nameAr": "تمرين التجديف بالدمبل بذراع واحدة",
       "level": "beginner",
       "equipment": "dumbbell",
       "primaryMuscles": [
@@ -361,6 +469,15 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement for the specified amount of repetitions.",
         "Switch sides and repeat again with the other arm."
       ],
+      "instructionsAr": [
+        "اختر مقعدًا مسطحًا وضع دمبلًا على كل جانب منه.",
+        "ضع الساق اليمنى على طرف المقعد، وانحنِ بجذعك للأمام من الخصر حتى يصبح الجزء العلوي من جسمك موازيًا للأرض، وضع يدك اليمنى على الطرف الآخر من المقعد للدعم.",
+        "استخدم اليد اليسرى لالتقاط الدمبل من الأرض، وأمسك الوزن مع إبقاء أسفل ظهرك مستقيمًا. يجب أن يتجه راحة اليد نحو جذعك. سيكون هذا وضع البداية.",
+        "اسحب الوزن لأعلى مباشرة إلى جانب صدرك، مع إبقاء ذراعك العلوي قريبًا من جانبك وإبقاء الجذع ثابتًا. قم بالزفير أثناء أداء هذه الخطوة. نصيحة: ركّز على شد عضلات الظهر عند الوصول إلى وضع الانقباض الكامل. تأكد أيضًا من أن القوة مبذولة بعضلات الظهر وليس الذراعين. أخيرًا، يجب أن يظل الجزء العلوي من الجذع ثابتًا ولا تتحرك سوى الذراعين. لا ينبغي للساعدين أن يبذلا أي جهد سوى حمل الدمبل؛ لذلك لا تحاول سحب الدمبل للأعلى باستخدام الساعدين.",
+        "أنزل الوزن مستقيمًا لأسفل إلى وضع البداية. قم بالشهيق أثناء أداء هذه الخطوة.",
+        "كرر الحركة لعدد التكرارات المحدد.",
+        "بدّل الجوانب وكرر مرة أخرى بالذراع الأخرى."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Dumbbell_Row/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Dumbbell_Row/1.jpg"
@@ -369,6 +486,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Barbell_Curl",
       "name": "Barbell Curl",
+      "nameAr": "تمرين ثني الذراعين بالبار للعضلة ذات الرأسين",
       "level": "beginner",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -384,6 +502,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Slowly begin to bring the bar back to starting position as your breathe in.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "قف بشكل مستقيم مع بقاء جذعك عمودياً وامسك البار بقبضة بعرض الكتفين. يجب أن توجّه راحتا يديك إلى الأمام، وأن يكون المرفقان قريبين من جذعك. هذه هي وضعية البداية.",
+        "مع إبقاء الجزء العلوي من ذراعيك ثابتاً، اثنِ البار للأعلى ببطء مع انقباض العضلة ذات الرأسين أثناء الزفير. ملاحظة: يجب أن يتحرك الساعدان فقط.",
+        "واصل الحركة حتى تنقبض العضلة ذات الرأسين انقباضاً كاملاً ويصبح البار عند مستوى الكتفين. اثبت على هذا الوضع لثانية واحدة واضغط على العضلة بقوة.",
+        "ابدأ بإعادة البار ببطء إلى وضع البداية أثناء الشهيق.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Curl/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Curl/1.jpg"
@@ -392,6 +517,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Alternate_Hammer_Curl",
       "name": "Alternate Hammer Curl",
+      "nameAr": "تمرين تناوب تجعيد المطرقة",
       "level": "beginner",
       "equipment": "dumbbell",
       "primaryMuscles": [
@@ -408,6 +534,14 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Repeat the movement with the left hand. This equals one repetition.",
         "Continue alternating in this manner for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "قف منتصبًا مع إبقاء جذعك مستقيمًا، وأمسك دمبلًا في كل يد بحيث يكون ذراعاك ممدودين على جانبي جسمك. يجب أن يكون المرفقان قريبين من الجذع.",
+        "يجب أن تتجه راحتا اليدين نحو جذعك. هذا هو وضع البداية.",
+        "مع تثبيت الجزء العلوي من الذراع ثابتًا، اثنِ الوزن باليد اليمنى إلى الأمام مع قبض العضلة ذات الرأسين أثناء الزفير. واصل الحركة حتى تنقبض العضلة ذات الرأسين بالكامل ويصل الدمبل إلى مستوى الكتف. اثبت على هذا الوضع لمدة ثانية مع الضغط على العضلة ذات الرأسين. ملاحظة: يجب أن يتحرك الساعدان فقط.",
+        "ابدأ بإعادة الدمبل ببطء إلى وضع البداية أثناء الشهيق.",
+        "كرر الحركة باليد اليسرى. هذا يعد تكرارًا واحدًا.",
+        "استمر في التناوب بهذه الطريقة لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Alternate_Hammer_Curl/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Alternate_Hammer_Curl/1.jpg"
@@ -418,6 +552,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Barbell_Full_Squat",
       "name": "Barbell Full Squat",
+      "nameAr": "القرفصاء الكامل بالحديد",
       "level": "intermediate",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -437,6 +572,14 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin to raise the bar as you exhale by pushing the floor with the heel or middle of your foot as you straighten the legs and extend the hips to go back to the starting position.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "من الأفضل أداء هذا التمرين داخل حامل القرفصاء (Squat Rack) لأسباب تتعلق بالسلامة. للبدء، ضع الحديد أولاً على الحامل على ارتفاع أعلى قليلاً من مستوى الكتفين. بعد اختيار الارتفاع المناسب وتحميل الحديد بالأوزان، قف تحت الحديد واجعله يستقر على الجزء الخلفي من كتفيك (أسفل الرقبة قليلاً).",
+        "أمسك الحديد بكلتا يديك من الجانبين، وارفعه عن الحامل بالدفع أولاً بساقيك مع استقامة جذعك في الوقت نفسه.",
+        "ابتعد عن الحامل، وثبّت قدميك بمسافة تساوي عرض الكتفين في وقفة متوسطة، مع توجيه أصابع القدمين إلى الخارج قليلاً. ارفع رأسك طوال الوقت وحافظ على استقامة ظهرك. هذه هي وضعية البداية.",
+        "ابدأ بخفض الحديد ببطء عن طريق ثني الركبتين وإرجاع الوركين إلى الخلف مع الحفاظ على استقامة الجسم ورفع الرأس. استمر في النزول حتى تلامس العضلات الخلفية للفخذ (أوتار الركبة) ربلة الساق. قم بالشهيق أثناء أداء هذا الجزء من الحركة.",
+        "ابدأ برفع الحديد مع الزفير بالدفع من الأرض بواسطة كعب القدم أو منتصفه، مع فرد الساقين ومدّ الوركين للعودة إلى وضعية البداية.",
+        "كرر الحركة لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Full_Squat/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Full_Squat/1.jpg"
@@ -445,6 +588,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Front_Squat_Clean_Grip",
       "name": "Front Squat (Clean Grip)",
+      "nameAr": "القرفصاء الأمامي (قبضة الكلين)",
       "level": "intermediate",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -461,6 +605,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Bend at the knees, sitting down between your legs. Continue down until your hamstrings are on your calves. Keep your knees aligned with your feet by consciously using your abductors to push your knees out as you squat.",
         "Begin to raise the bar as you exhale by pushing the floor mainly with the heel or middle of your foot as you straighten the legs again and return to the starting position."
       ],
+      "instructionsAr": [
+        "اضبط البار في الحامل تحت مستوى الكتفين قليلاً. ضع البار فوق الكتفين الأماميين مع دفعه نحو الترقوة، وأمسكه بقبضة الكلين بأطراف الأصابع فقط لتثبيته.",
+        "ارفع البار عن الحامل بمدّ الساقين مع استقامة الجذع. تراجع خطوة للخلف واتخذ وقفة بعرض الكتفين مع توجيه الأصابع قليلاً للخارج، وحافظ على رأسك ومرفقيك مرفوعين.",
+        "اثنِ الركبتين وانزل بين ساقيك حتى تلامس أوتار الركبة الساقين، مع دفع الركبتين للخارج عبر عضلات الإبعاد.",
+        "ادفع بالأرض عبر الكعب أو منتصف القدم لرفع البار من جديد والعودة إلى وضع البداية."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Squat_Clean_Grip/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Front_Squat_Clean_Grip/1.jpg"
@@ -469,6 +619,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Leg_Press",
       "name": "Leg Press",
+      "nameAr": "ضغط الأرجل",
       "level": "beginner",
       "equipment": "machine",
       "primaryMuscles": [
@@ -486,6 +637,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Pushing mainly with the heels of your feet and using the quadriceps go back to the starting position as you exhale.",
         "Repeat for the recommended amount of repetitions and ensure to lock the safety pins properly once you are done. You do not want that platform falling on you fully loaded."
       ],
+      "instructionsAr": [
+        "باستخدام جهاز ضغط الأرجل، اجلس على الجهاز وضع قدميك على المنصة أمامك مباشرة بوضعية قدمين متوسطة (بعرض الكتفين). (ملاحظة: لأغراض هذا الشرح نستخدم الوضعية المتوسطة المذكورة أعلاه التي تستهدف التنمية العامة؛ ومع ذلك يمكنك اختيار أي من الوضعيات الثلاث الموضحة في قسم تحديد موضع القدمين).",
+        "أنزِل قضبان الأمان التي تثبّت المنصة المثقلة بالأوزان، وادفع المنصة للأعلى بالكامل حتى تكون ساقاك ممتدتين أمامك. تلميح: تأكد من عدم قفل ركبتيك. يجب أن يشكل جذعك وساقاك زاوية قائمة مقدارها 90 درجة. هذه ستكون وضعية البداية.",
+        "أثناء الشهيق، اخفض المنصة ببطء حتى يصنع فخذاك وساقاك زاوية قائمة مقدارها 90 درجة.",
+        "ادفع بشكل أساسي بكعبَي قدميك مستخدماً العضلات الرباعية للعودة إلى وضعية البداية أثناء الزفير.",
+        "كرّر التمرين لعدد التكرارات الموصى به، وتأكد من إحكام قفل مسامير الأمان بشكل صحيح عند الانتهاء. فأنت لا تريد أن تسقط عليك المنصة وهي محمّلة بالكامل."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Press/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Press/1.jpg"
@@ -494,6 +652,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Romanian_Deadlift",
       "name": "Romanian Deadlift",
+      "nameAr": "الرفعة المميتة الرومانية",
       "level": "intermediate",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -511,6 +670,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Once you are standing completely straight up, lower the bar by pushing the hips back, only slightly bending the knees, unlike when squatting. Tip: Take a deep breath at the start of the movement and keep your chest up. Hold your breath as you lower and exhale as you complete the movement.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "ضع شريط الحديد (البار) أمامك على الأرض وامسكه بقبضة علوية (بحيث تكون راحة اليد متجهة للأسفل) بعرضٍ أوسع قليلاً من عرض الكتفين. ملاحظة: اعتمادًا على الوزن المستخدم، قد تحتاج إلى لفافات للمعصم لأداء التمرين، وقد تحتاج أيضًا إلى منصة مرتفعة للسماح بنطاق حركة أفضل.",
+        "اثنِ ركبتيك قليلاً مع إبقاء ساقيك عموديتين، وادفع وركيك إلى الخلف وحافظ على استقامة ظهرك. هذا هو وضع البداية.",
+        "حافظ على استقامة ظهرك وذراعيك تمامًا طوال الوقت، واستخدم وركيك لرفع البار أثناء الزفير. يجب أن تكون الحركة ثابتة ومضبوطة وليست سريعة.",
+        "عندما تقف منتصبًا تمامًا، اخفض البار بدفع وركيك إلى الخلف مع ثني الركبتين قليلًا فقط، وليس كما في القرفصاء. خذ نفسًا عميقًا في بداية الحركة وارفع صدرك، واحبس أنفاسك أثناء النزول، ثم أخرج الزفير عند إتمام الحركة.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Romanian_Deadlift/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Romanian_Deadlift/1.jpg"
@@ -519,6 +685,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Barbell_Walking_Lunge",
       "name": "Barbell Walking Lunge",
+      "nameAr": "اندفاع المشي بقضيب الحديد",
       "level": "beginner",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -535,6 +702,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Drive through the heel of your lead foot and extend both knees to raise yourself back up.",
         "Step forward with your rear foot, repeating the lunge on the opposite leg."
       ],
+      "instructionsAr": [
+        "ابدأ واقفًا والقدمان متباعدتان بمقدار عرض الكتفين، مع وضع قضيب الحديد على أعلى ظهرك.",
+        "تقدّم بإحدى الساقين إلى الأمام مع ثني الركبتين لخفض الوركين، وانزل حتى تقترب الركبة الخلفية من لمس الأرض. حافظ على استقامة جذعك، واجعل ركبتك الأمامية فوق قدمك الأمامية.",
+        "ادفع الأرض بكعب قدمك الأمامية ومدّ ركبتيك لرفع جسمك مرة أخرى إلى وضع الوقوف.",
+        "تقدّم بالقدم الخلفية إلى الأمام وكرّر الاندفاع على الساق الأخرى."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Walking_Lunge/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Walking_Lunge/1.jpg"
@@ -543,6 +716,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Leg_Extensions",
       "name": "Leg Extensions",
+      "nameAr": "تمديد الساقين",
       "level": "beginner",
       "equipment": "machine",
       "primaryMuscles": [
@@ -555,6 +729,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Slowly lower the weight back to the original position as you inhale, ensuring that you do not go past the 90-degree angle limit.",
         "Repeat for the recommended amount of times."
       ],
+      "instructionsAr": [
+        "في هذا التمرين، ستحتاج إلى استخدام جهاز تمديد الساقين. ابدأ باختيار الوزن المناسب، ثم اجلس على الجهاز وضع ساقيك تحت الوسادة (مع توجيه القدمين إلى الأمام) وأمسك المقابض الجانبية بيديك. سيكون هذا هو وضع البداية. نصيحة: اضبط الوسادة بحيث تستقر على أعلى الجزء السفلي من ساقك (فوق قدميك مباشرة)، وتأكد أيضًا من أن ساقيك تشكلان زاوية 90 درجة بين الجزء السفلي والعلوي من الساق. إذا كانت الزاوية أقل من 90 درجة، فهذا يعني أن الركبة تتجاوز أصابع القدم، مما يسبب إجهادًا غير ضروري على مفصل الركبة. إذا كان الجهاز مصممًا على هذا النحو، فإما أن تبحث عن جهاز آخر أو تأكد فقط من أنه عند بدء التنفيذ تتوقف عن النزول بمجرد بلوغ زاوية 90 درجة.",
+        "باستخدام عضلات الفخذ الرباعية، مد ساقيك إلى أقصى حد ممكن أثناء الزفير. تأكد من أن باقي الجسم يبقى ثابتًا على المقعد. توقف للحظة (ثانية واحدة) عند وضع الانقباض.",
+        "اخفض الوزن ببطء إلى وضع البداية أثناء الشهيق، مع الحرص على عدم تجاوز حد زاوية 90 درجة.",
+        "كرر التمرين لعدد المرات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Extensions/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Leg_Extensions/1.jpg"
@@ -563,6 +743,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Lying_Leg_Curls",
       "name": "Lying Leg Curls",
+      "nameAr": "ثني الساقين من وضع الاستلقاء",
       "level": "beginner",
       "equipment": "machine",
       "primaryMuscles": [
@@ -575,6 +756,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "As you exhale, curl your legs up as far as possible without lifting the upper legs from the pad. Once you hit the fully contracted position, hold it for a second.",
         "As you inhale, bring the legs back to the initial position. Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "اضبط ذراع الجهاز بما يتناسب مع طولك، ثم استلقِ على وجهك على جهاز ثني الساقين بحيث تكون وسادة الذراع خلف ساقيك (أسفل السمانة ببضعة سنتيمترات). نصيحة: يُفضّل استخدام جهاز ثني الساقين المائل بدلاً من المستوي، لأن الوضع المائل أكثر فاعلية لتنشيط العضلات الخلفية للفخذ.",
+        "أبقِ جذعك مفرودًا على المقعد، وتأكد من أن ساقيك ممتدتان بالكامل، ثم أمسك المقابض الجانبية للجهاز. وجّه أصابع قدميك إلى الأمام (أو يمكنك استخدام أي من الوضعين الآخرين الموضحين في قسم تحديد موضع القدمين). هذا سيكون وضع البداية.",
+        "أثناء الزفير، اثنِ ساقيك إلى الأعلى قدر الإمكان دون رفع الجزء العلوي من الساقين عن الوسادة. وعند بلوغ وضع الانقباض الكامل، اثبت فيه لثانية واحدة.",
+        "أثناء الشهيق، أعد الساقين إلى وضع البداية. كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Lying_Leg_Curls/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Lying_Leg_Curls/1.jpg"
@@ -583,6 +770,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Barbell_Seated_Calf_Raise",
       "name": "Barbell Seated Calf Raise",
+      "nameAr": "تمرين رفع ربلة الساق بالبار أثناء الجلوس",
       "level": "beginner",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -597,6 +785,14 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "After a second contraction, slowly go back to the starting position. Tip: To get maximum benefit stretch your calves as far as you can.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "ضع كتلة على بعد حوالي 12 بوصة أمام مقعد مسطح.",
+        "اجلس على المقعد وضع مقدمة قدميك على الكتلة.",
+        "اطلب من شخص مساعد أن يضع بارًا حديديًا فوق الجزء العلوي من فخذيك، حوالي 3 بوصات فوق ركبتيك، وأن يُبقيه هناك. هذه هي وضعية البداية.",
+        "ارتفع على أصابع قدميك إلى أعلى ما تستطيع، مع انقباض عضلات ربلة الساق، وقم بذلك أثناء الزفير.",
+        "بعد ثانية واحدة من الانقباض، عُد ببطء إلى وضع البداية. نصيحة: للحصول على أقصى فائدة، مدّ عضلات ربلة الساق قدر ما تستطيع.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Seated_Calf_Raise/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Seated_Calf_Raise/1.jpg"
@@ -605,6 +801,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Barbell_Glute_Bridge",
       "name": "Barbell Glute Bridge",
+      "nameAr": "جسر الأرداف بالبار الحديدي",
       "level": "intermediate",
       "equipment": "barbell",
       "primaryMuscles": [
@@ -619,6 +816,11 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin the movement by driving through with your heels, extending your hips vertically through the bar. Your weight should be supported by your upper back and the heels of your feet.",
         "Extend as far as possible, then reverse the motion to return to the starting position."
       ],
+      "instructionsAr": [
+        "ابدأ جالسًا على الأرض مع وضع بار حديدي مُحمّل فوق ساقيك. يمكن أن يؤدي استخدام بار سميك أو وضع وسادة على البار إلى تقليل الانزعاج الناتج عن هذا التمرين بشكل كبير. دحرج البار حتى يصبح مباشرة فوق وركيك، ثم استلقِ على الأرض بشكل مسطّح.",
+        "ابدأ الحركة بالدفع عبر كعبيك، مع مدّ وركيك عموديًا نحو البار. يجب أن يستند وزنك على أعلى ظهرك وكعبي قدميك.",
+        "مدّ وركيك إلى أقصى حد ممكن، ثم اعكس الحركة للعودة إلى وضع البداية."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Glute_Bridge/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Barbell_Glute_Bridge/1.jpg"
@@ -629,6 +831,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Plank",
       "name": "Plank",
+      "nameAr": "البلانك",
       "level": "beginner",
       "equipment": "body only",
       "primaryMuscles": [
@@ -639,6 +842,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Get into a prone position on the floor, supporting your weight on your toes and your forearms. Your arms are bent and directly below the shoulder.",
         "Keep your body straight at all times, and hold this position as long as possible. To increase difficulty, an arm or leg can be raised."
       ],
+      "instructionsAr": [
+        "ابدأ بوضعية الانبطاح على الأرض، مع إسناد وزن جسمك على أصابع القدمين والساعدين. تكون الذراعان مثنيتين وتحت الكتفين مباشرة.",
+        "حافظ على استقامة جسمك طوال الوقت، واثبت على هذه الوضعية لأطول فترة ممكنة. لزيادة الصعوبة، يمكن رفع ذراع أو ساق."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Plank/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Plank/1.jpg"
@@ -647,6 +854,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Cable_Crunch",
       "name": "Cable Crunch",
+      "nameAr": "تمرين كرانش الكابل",
       "level": "beginner",
       "equipment": "cable",
       "primaryMuscles": [
@@ -661,6 +869,14 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Slowly return to the starting position as you inhale. Tip: Make sure that you keep constant tension on the abs throughout the movement. Also, do not choose a weight so heavy that the lower back handles the brunt of the work.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "اركع تحت بكرة علوية مزوَّدة بملحق حبل.",
+        "امسك بملحق الحبل واخفضه حتى تصبح يداك بجانب وجهك.",
+        "اثنِ وركيك قليلاً واسمح للوزن بتمديد أسفل الظهر. سيكون هذا وضع البداية.",
+        "مع إبقاء الوركين ثابتين، اثنِ الخصر مع قبض عضلات البطن بحيث يتجه مرفقاك نحو منتصف الفخذين. قم بالزفير أثناء أداء هذا الجزء من الحركة واحتفظ بالانقباض لثانية واحدة.",
+        "عُد ببطء إلى وضع البداية أثناء الشهيق. ملاحظة: تأكد من إبقاء التوتر مستمرًا على عضلات البطن طوال الحركة، ولا تختر وزنًا ثقيلًا لدرجة أن يتحمل أسفل ظهرك معظم الجهد.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crunch/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Cable_Crunch/1.jpg"
@@ -669,6 +885,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Hanging_Leg_Raise",
       "name": "Hanging Leg Raise",
+      "nameAr": "رفع الساقين من التعليق",
       "level": "expert",
       "equipment": "body only",
       "primaryMuscles": [
@@ -681,6 +898,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Go back slowly to the starting position as you breathe in.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "علّق من عارضة السحب مع تمديد الذراعين بالكامل فوقك، باستخدام قبضة واسعة أو متوسطة. يجب أن تكون الساقان مستقيمتين إلى الأسفل مع دحرجة الحوض للخلف قليلاً. هذه هي وضعية البداية.",
+        "ارفع ساقيك حتى يشكل الجذع زاوية 90 درجة مع الساقين. قم بالزفير أثناء أداء هذه الحركة، واثبت على الانقباض لثانية تقريباً.",
+        "عد ببطء إلى وضع البداية أثناء الشهيق.",
+        "كرر الحركة للعدد الموصى به من التكرارات."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Hanging_Leg_Raise/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Hanging_Leg_Raise/1.jpg"
@@ -689,6 +912,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Russian_Twist",
       "name": "Russian Twist",
+      "nameAr": "الالتواء الروسي",
       "level": "intermediate",
       "equipment": "body only",
       "primaryMuscles": [
@@ -704,6 +928,13 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Hold the contraction for a second and move back to the starting position while breathing out. Now move to the opposite side performing the same techniques you applied to the right side.",
         "Repeat for the recommended amount of repetitions."
       ],
+      "instructionsAr": [
+        "استلقِ على الأرض واضعًا قدميك إما تحت شيء ثابت لا يتحرك أو بمساعدة شريك يثبّتهما. يجب أن تكون ساقيك مثنيتين عند الركبتين.",
+        "ارفع الجزء العلوي من جسمك بحيث يشكل شكل حرف V وهميًا مع فخذيك. مدّ ذراعيك بالكامل أمامك بشكل عمودي على جذعك مع تشبيك يديك. هذا هو وضع البداية.",
+        "لفّ جذعك نحو الجانب الأيمن حتى يصبح ذراعاك موازيين للأرض أثناء الزفير.",
+        "اثبت على الانقباض لثانية واحدة ثم عد إلى وضع البداية أثناء الزفير. الآن انتقل إلى الجانب المقابل مؤديًا نفس الأسلوب الذي طبقته على الجانب الأيمن.",
+        "كرر التمرين لعدد التكرارات الموصى به."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Russian_Twist/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Russian_Twist/1.jpg"
@@ -714,6 +945,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Air_Bike",
       "name": "Air Bike",
+      "nameAr": "تمرين الدراجة الهوائية",
       "level": "beginner",
       "equipment": "body only",
       "primaryMuscles": [
@@ -728,6 +960,14 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Crunch to the opposite side as you cycle your legs and bring closer your left elbow to your right knee and exhale.",
         "Continue alternating in this manner until all of the recommended repetitions for each side have been completed."
       ],
+      "instructionsAr": [
+        "استلقِ على الأرض بشكل مسطّح مع الضغط بأسفل الظهر على الأرض. ستحتاج في هذا التمرين إلى وضع يديك بجانب رأسك، ولكن احذر من إجهاد الرقبة أثناء أدائه. ارفع كتفيك الآن إلى وضع الجلوس الطعني (وضعية الكرانش).",
+        "ارفع ركبتيك إلى أن تصبحا عموديتين على الأرض، مع جعل أسفل ساقيك موازيين للأرض. ستكون هذه وضعية البداية.",
+        "الآن وفي الوقت نفسه، قم بحركة دوّاسة القدمين ببطء، مع مدّ الساق اليمنى إلى الأمام وجذب ركبة الساق اليسرى نحو الداخل. قرِّب مرفقك الأيمن من ركبتك اليسرى بالالتواء إلى الجانب أثناء الزفير.",
+        "عُد إلى الوضعية الأولية أثناء الشهيق.",
+        "الْتَوِ إلى الجانب المقابل أثناء تدوير ساقيك، وقرِّب مرفقك الأيسر من ركبتك اليمنى مع الزفير.",
+        "استمر في التناوب بهذه الطريقة حتى إكمال جميع التكرارات الموصى بها لكل جانب."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Air_Bike/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Air_Bike/1.jpg"
@@ -736,6 +976,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Battling_Ropes",
       "name": "Battling Ropes",
+      "nameAr": "حبال المعركة",
       "level": "beginner",
       "equipment": "other",
       "primaryMuscles": [
@@ -751,6 +992,12 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "As you let that arm drop to the starting position, raise the opposite side.",
         "Continue alternating your left and right arms, whipping the ropes up and down as fast as you can."
       ],
+      "instructionsAr": [
+        "تحتاج في هذا التمرين إلى حبل ثقيل مثبت من منتصفه على مسافة تتراوح بين 15 و20 قدمًا. قف أمام الحبل وأمسك بطرف في كل يد مع مد ذراعيك إلى جانبيك. هذه هي وضعية البداية.",
+        "ابدأ الحركة برفع أحد ذراعيك بسرعة إلى مستوى الكتف بأسرع ما يمكن.",
+        "عندما تترك هذا الذراع ينزل إلى وضع البداية، ارفع الذراع المقابلة.",
+        "واصل التناوب بين ذراعيك اليمنى واليسرى، بحركة تضرب الحبال للأعلى والأسفل بأسرع ما يمكن."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Battling_Ropes/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Battling_Ropes/1.jpg"
@@ -759,6 +1006,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Mountain_Climbers",
       "name": "Mountain Climbers",
+      "nameAr": "متسلقو الجبال",
       "level": "beginner",
       "equipment": null,
       "primaryMuscles": [
@@ -773,6 +1021,10 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin in a pushup position, with your weight supported by your hands and toes. Flexing the knee and hip, bring one leg until the knee is approximately under the hip. This will be your starting position.",
         "Explosively reverse the positions of your legs, extending the bent leg until the leg is straight and supported by the toe, and bringing the other foot up with the hip and knee flexed. Repeat in an alternating fashion for 20-30 seconds."
       ],
+      "instructionsAr": [
+        "ابدأ بوضعية تمرين الضغط، مع دعم وزن جسمك على يديك وأصابع قدميك. اثنِ الركبة والورك، واجلب ساقًا واحدة حتى تصبح الركبة تقريبًا تحت الورك. سيكون هذا وضع البداية.",
+        "بدّل وضع ساقيك بشكل انفجاري، بمدّ الساق المثنية حتى تصبح مستقيمة ومدعومة بأصابع القدم، مع رفع القدم الأخرى لأعلى مع ثني الورك والركبة. كرر التمرين بالتناوب لمدة 20-30 ثانية."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Mountain_Climbers/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Mountain_Climbers/1.jpg"
@@ -781,6 +1033,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "One-Arm_Kettlebell_Swings",
       "name": "One-Arm Kettlebell Swings",
+      "nameAr": "أرجحة الكيتل بيل بذراع واحدة",
       "level": "intermediate",
       "equipment": "kettlebells",
       "primaryMuscles": [
@@ -792,7 +1045,16 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "lower back",
         "shoulders"
       ],
-      "instructions": [],
+      "instructions": [
+        "Place a kettlebell between your feet and hinge at the hips to grip it with one hand.",
+        "Swing it back between your legs, then drive your hips forward to swing it up to chest height.",
+        "Let the kettlebell swing back down between your legs and repeat in a fluid motion."
+      ],
+      "instructionsAr": [
+        "ضع الكيتل بيل بين قدميك وانحنِ من الوركين للإمساك به بيد واحدة.",
+        "أرجحه للخلف بين ساقيك، ثم ادفع الوركين للأمام لأرجحته حتى مستوى الصدر.",
+        "دعه يتأرجح عائداً بين ساقيك وكرر بحركة انسيابية."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Kettlebell_Swings/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/One-Arm_Kettlebell_Swings/1.jpg"
@@ -801,6 +1063,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Goblet_Squat",
       "name": "Goblet Squat",
+      "nameAr": "قرفصاء الكأس",
       "level": "beginner",
       "equipment": "kettlebells",
       "primaryMuscles": [
@@ -817,6 +1080,11 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Squat down between your legs until your hamstrings are on your calves. Keep your chest and head up and your back straight.",
         "At the bottom position, pause and use your elbows to push your knees out. Return to the starting position, and repeat for 10-20 repetitions."
       ],
+      "instructionsAr": [
+        "قف ممسكًا بكيتل بيل خفيف من قرنيه بالقرب من صدرك. هذه هي وضعية البداية.",
+        "انزل إلى الأسفل بين ساقيك حتى تلامس أوتار ركبتيك عضلات ساقيك. أبقِ صدرك ورأسك مرفوعين وظهرك مستقيمًا.",
+        "عند الوضعية الأدنى، توقف قليلًا واستخدم مرفقيك لدفع ركبتيك إلى الخارج. ثم عد إلى وضع البداية، وكرر التمرين من 10 إلى 20 مرة."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Goblet_Squat/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Goblet_Squat/1.jpg"
@@ -825,6 +1093,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Rowing_Stationary",
       "name": "Rowing, Stationary",
+      "nameAr": "تجديف، ثابت",
       "level": "intermediate",
       "equipment": "machine",
       "primaryMuscles": [
@@ -843,6 +1112,11 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "There are three phases of movement when using a rower. The first phase is when you come forward on the rower. Your knees are bent and against your chest. Your upper body is leaning slightly forward while still maintaining good posture. Next, push against the foot pedals and extend your legs while bringing your hands to your upper abdominal area, squeezing your shoulders back as you do so. To avoid straining your back, use primarily your leg and hip muscles.",
         "The recovery phase simply involves straightening your arms, bending the knees, and bringing your body forward again as you transition back into the first phase."
       ],
+      "instructionsAr": [
+        "للبدء، اجلس على جهاز التجديف. تأكد من أن كعبيك يستندان بشكل مريح إلى قاعدة دواسات القدم وأن الأشرطة مثبتة بإحكام. اختر البرنامج الذي ترغب في استخدامه، إذا كان متاحًا. اجلس باستقامة وانحنِ للأمام من منطقة الوركين.",
+        "هناك ثلاث مراحل للحركة عند استخدام جهاز التجديف. المرحلة الأولى هي عندما تتقدم للأمام على الجهاز. ركبتاك مثنيتان وقريبتان من صدرك. الجزء العلوي من جسمك يميل قليلًا إلى الأمام مع الحفاظ على وضعية جيدة. بعد ذلك، ادفع ضد دواسات القدم ومدّ ساقيك مع bringing يديك إلى منطقة البطن العلوية، مع ضغط كتفيك إلى الخلف أثناء قيامك بذلك. لتجنب إجهاد ظهرك، استخدم بشكل أساسي عضلات ساقيك ووركيك.",
+        "تتضمن مرحلة الاسترداد ببساطة فرد ذراعيك، وثني ركبتيك، وإعادة جسمك إلى الأمام مرة أخرى أثناء انتقالك إلى المرحلة الأولى."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Rowing_Stationary/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Rowing_Stationary/1.jpg"
@@ -851,6 +1125,7 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
     {
       "id": "Bodyweight_Squat",
       "name": "Bodyweight Squat",
+      "nameAr": "القرفصاء بوزن الجسم",
       "level": "beginner",
       "equipment": "body only",
       "primaryMuscles": [
@@ -865,6 +1140,11 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
         "Begin the movement by flexing your knees and hips, sitting back with your hips.",
         "Continue down to full depth if you are able,and quickly reverse the motion until you return to the starting position. As you squat, keep your head and chest up and push your knees out."
       ],
+      "instructionsAr": [
+        "قف مع مباعدة قدميك بمقدار عرض الكتفين. يمكنك وضع يديك خلف رأسك. هذه ستكون وضعية البداية.",
+        "ابدأ الحركة بثني ركبتيك ووركيك مع إرجاع وركيك إلى الخلف.",
+        "واصل النزول إلى أقصى عمق إن استطعت، ثم اعكس الحركة بسرعة حتى تعود إلى وضع البداية. أثناء القرفصاء، حافظ على رفع رأسك وصدرك وادفع ركبتيك إلى الخارج."
+      ],
       "images": [
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bodyweight_Squat/0.jpg",
         "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Bodyweight_Squat/1.jpg"
@@ -873,8 +1153,6 @@ export const EXERCISE_CATALOG: Record<ExerciseGroup, CatalogExercise[]> = {
   ]
 };
 
-// Flat list of every catalogued exercise, used for client-side lookups when a
-// saved plan predates the exercise library (no exerciseId/images stored).
 export const ALL_EXERCISES: CatalogExercise[] = [
   ...EXERCISE_CATALOG.push,
   ...EXERCISE_CATALOG.pull,
@@ -883,8 +1161,6 @@ export const ALL_EXERCISES: CatalogExercise[] = [
   ...EXERCISE_CATALOG.cardio,
 ];
 
-// Display names used by the very first (pre-library) plan generator, mapped to
-// catalog ids so older plans can still resolve images + instructions.
 export const LEGACY_NAME_TO_ID: Record<string, string> = {
   "Back Squat": "Barbell_Full_Squat",
   "Romanian Deadlift": "Romanian_Deadlift",
@@ -914,8 +1190,6 @@ export const LEGACY_NAME_TO_ID: Record<string, string> = {
   "Steady State": "Elliptical_Trainer",
 };
 
-// Resolve a catalogued exercise from an exerciseId, a display name, or a legacy
-// pre-library name. Returns null when nothing matches.
 export function findCatalogExercise(query?: string): CatalogExercise | null {
   if (!query) return null;
   const q = query.trim().toLowerCase();

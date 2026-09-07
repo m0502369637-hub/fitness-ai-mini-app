@@ -134,3 +134,57 @@ export const getStorageUrl = internalQuery({
     return ctx.storage.getUrl(storageId);
   },
 });
+
+/** Deduct points + write a ledger entry for a non-chat AI spend (e.g. plan edit). */
+export const chargePoints = internalMutation({
+  args: { userId: v.id("users"), cost: v.number(), description: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    if (user.pointsBalance < args.cost) throw new Error("Insufficient points");
+    const newBalance = user.pointsBalance - args.cost;
+    await ctx.db.patch(args.userId, { pointsBalance: newBalance });
+    await ctx.db.insert("transactions", {
+      userId: args.userId,
+      amount: -args.cost,
+      type: "use_ai",
+      description: args.description,
+      pointsAfter: newBalance,
+      timestamp: Date.now(),
+    });
+    return { balance: newBalance };
+  },
+});
+
+/** The latest plan (with explicit 0-based indexes) for the plan-edit LLM prompt. */
+export const getPlanEditContext = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const profile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    const plan = await ctx.db
+      .query("workoutPlans")
+      .withIndex("by_userId_createdAt", (q) => q.eq("userId", userId))
+      .order("desc")
+      .first();
+
+    if (!plan) return { planId: null, profile, days: [] };
+
+    return {
+      planId: plan._id,
+      profile,
+      days: plan.days.map((d, di) => ({
+        index: di,
+        day: d.day,
+        exercises: d.exercises.map((e, ei) => ({
+          index: ei,
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+        })),
+      })),
+    };
+  },
+});
