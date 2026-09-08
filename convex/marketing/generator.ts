@@ -22,14 +22,16 @@ import { arrayBufferToDataUrl } from "../lib/models";
 import { chatCompletion, routeModel } from "../lib/models";
 
 // HF retired the legacy api-inference.huggingface.co serverless API (late 2025).
-// All HF inference now goes through the router (https://router.huggingface.co)
-// with provider-pinned or auto-routed models. The default ids below are the
-// current Inference-Provider-era catalog; the original spec models
-// (meta-llama/Llama-3-8B-Instruct, FLUX.1-schnell, SVD-img2vid-xt) are retired
-// upstream and remain overridable via env.
+// All HF inference now goes through the router (https://router.huggingface.co):
+//  - text  -> OpenAI-compatible /v1/chat/completions (auto provider routing)
+//  - image -> /hf-inference/models/{id} (HF Inference provider catalog)
+//  - video -> not served by the HF Inference provider (needs a third-party
+//             provider key, e.g. fal-ai/replicate/wavespeed, added in HF
+//             settings) — the engine logs the failure and continues without it.
+const HF_CHAT_URL = "https://router.huggingface.co/v1/chat/completions";
 const HF_BASE = "https://router.huggingface.co/hf-inference/models";
 const DEFAULT_TEXT_MODEL = "meta-llama/Llama-3.1-8B-Instruct";
-const DEFAULT_IMAGE_MODEL = "Qwen/Qwen-Image";
+const DEFAULT_IMAGE_MODEL = "stabilityai/stable-diffusion-3-medium-diffusers";
 const DEFAULT_VIDEO_MODEL = "Lightricks/LTX-Video-0.9.7-distilled";
 const DEFAULT_BRAND_COLOR = "#d7f26d"; // FitAI chartreuse
 const KNOWN_PLATFORMS = ["x", "facebook", "instagram", "linkedin"] as const;
@@ -64,13 +66,13 @@ function hfToken(): string {
 }
 
 /**
- * POST to the HF Router (provider-aware inference) with cold-start / rate-limit
- * resilience: `x-wait-for-model: true` makes HF hold the request while the model
- * loads, and 429/503/5xx responses (plus timeouts and network hiccups) are
- * retried with exponential backoff.
+ * POST JSON to the HF Router with cold-start / rate-limit resilience:
+ * `x-wait-for-model: true` makes HF hold the request while the model loads,
+ * and 429/503/5xx responses (plus timeouts and network hiccups) are retried
+ * with exponential backoff.
  */
 async function hfRequest(
-  model: string,
+  url: string,
   body: unknown,
   options: { timeoutMs?: number; maxRetries?: number } = {},
 ): Promise<Response> {
@@ -82,7 +84,7 @@ async function hfRequest(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(`${HF_BASE}/${model}`, {
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${hfToken()}`,
@@ -233,9 +235,9 @@ function imagePrompt(theme: string, topic: string, brandColor: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * 1) Text: one caption per platform via the HF Router; on any HF failure
- * (missing permission, provider catalog gap, network) the step falls back to
- * the app's DeepSeek model so caption generation keeps working.
+ * 1) Text: one caption per platform via the HF Router's OpenAI-compatible chat
+ * completions (auto provider routing); on any HF failure the step falls back
+ * to the app's DeepSeek model so caption generation keeps working.
  */
 async function generateCaption(
   platform: string,
@@ -246,40 +248,27 @@ async function generateCaption(
   const model = process.env.MARKETING_TEXT_MODEL ?? DEFAULT_TEXT_MODEL;
   const userPrompt = textUserPrompt(platform, theme, topic, brandColor);
 
-  // --- Attempt 1: Hugging Face (Llama-3 chat template on the router) ---
+  // --- Attempt 1: Hugging Face router (auto provider selection) ---
   try {
-    const inputs = [
-      "<|begin_of_text|><|start_header_id|>system<|end_header_id|>",
-      "",
-      TEXT_SYSTEM_PROMPT,
-      "<|eot_id|><|start_header_id|>user<|end_header_id|>",
-      "",
-      userPrompt,
-      "<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
-      "",
-    ].join("\n");
     const res = await hfRequest(
-      model,
+      HF_CHAT_URL,
       {
-        inputs,
-        parameters: { max_new_tokens: 220, temperature: 0.85, do_sample: true, return_full_text: false },
+        model,
+        messages: [
+          { role: "system", content: TEXT_SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 700,
+        temperature: 0.85,
       },
       { timeoutMs: 60_000, maxRetries: 2 },
     );
-    const json = (await res.json()) as unknown;
-    let raw = "";
-    if (Array.isArray(json)) {
-      const first = json[0] as { generated_text?: string } | undefined;
-      raw = first?.generated_text ?? "";
-    } else if (json && typeof json === "object") {
-      const obj = json as { error?: unknown; generated_text?: unknown };
-      if (typeof obj.error === "string" && obj.error.length > 0) {
-        throw new Error(`HF text model: ${obj.error}`);
-      }
-      raw = typeof obj.generated_text === "string" ? obj.generated_text : "";
-    }
-    if (!raw.trim()) throw new Error("HF text model returned empty output");
-    return parseCaption(raw);
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) throw new Error("HF chat returned empty content");
+    return parseCaption(content);
   } catch (e) {
     // --- Attempt 2: DeepSeek fallback (same prompts, OpenAI-compatible API) ---
     if (process.env.MARKETING_TEXT_FALLBACK === "off") throw e;
@@ -350,12 +339,15 @@ function parseCaption(raw: string): CaptionResult {
   return { caption: cleaned, hashtags };
 }
 
-/** 2) Image: current-generation HF provider text-to-image model. */
+/** 2) Image: HF Inference provider text-to-image (SD3-medium, free credits). */
 async function generateImage(theme: string, topic: string, brandColor: string): Promise<Media> {
   const model = process.env.MARKETING_IMAGE_MODEL ?? DEFAULT_IMAGE_MODEL;
   const res = await hfRequest(
-    model,
-    { inputs: imagePrompt(theme, topic, brandColor) },
+    `${HF_BASE}/${model}`,
+    {
+      inputs: imagePrompt(theme, topic, brandColor),
+      parameters: { width: 1024, height: 1024 },
+    },
     { timeoutMs: 180_000, maxRetries: 3 },
   );
   return await responseToBytes(res);
@@ -374,7 +366,7 @@ async function generateVideo(image: Media): Promise<Media> {
   let lastError: unknown = null;
   for (const body of bodies) {
     try {
-      const res = await hfRequest(model, body, { timeoutMs: 300_000, maxRetries: 2 });
+      const res = await hfRequest(`${HF_BASE}/${model}`, body, { timeoutMs: 300_000, maxRetries: 2 });
       return await responseToBytes(res);
     } catch (e) {
       lastError = e;

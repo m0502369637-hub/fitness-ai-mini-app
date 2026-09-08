@@ -24,19 +24,27 @@ reads the crons config from the root path.
 
 | Stage | Model | Env override |
 | --- | --- | --- |
-| Text (captions) | `meta-llama/Llama-3.1-8B-Instruct` | `MARKETING_TEXT_MODEL` |
-| Image | `Qwen/Qwen-Image` | `MARKETING_IMAGE_MODEL` |
+| Text (captions) | `meta-llama/Llama-3.1-8B-Instruct` (auto-routed) | `MARKETING_TEXT_MODEL` |
+| Image | `stabilityai/stable-diffusion-3-medium-diffusers` | `MARKETING_IMAGE_MODEL` |
 | Video | `Lightricks/LTX-Video-0.9.7-distilled` | `MARKETING_VIDEO_MODEL` |
 
 > ⚠️ HF retired the legacy serverless API (`api-inference.huggingface.co`,
-> 410 Gone, late 2025). All calls now go through the **router**
-> (`https://router.huggingface.co/hf-inference/models/<model>`), and the token
-> must be a fine-grained token with the **"Make calls to Inference Providers"**
-> permission. The original spec models (`meta-llama/Llama-3-8B-Instruct`,
+> 410 Gone, late 2025). All calls now go through the **router**:
+>
+> - **Text** — OpenAI-compatible `POST https://router.huggingface.co/v1/chat/completions`
+>   with `{ model, messages, max_tokens }`; the router auto-selects the provider.
+> - **Image** — `POST https://router.huggingface.co/hf-inference/models/{model}`
+>   (HF Inference provider catalog; free-credit billed).
+> - **Video** — the HF Inference provider does **not** serve video models in the
+>   current catalog. To enable the video step, add a third-party provider key
+>   (fal-ai / replicate / wavespeed) in your HF Inference Provider settings and
+>   pin it via `MARKETING_VIDEO_MODEL=<model>:<provider>`. Until then the video
+>   step logs its failure and the campaign proceeds with captions + image.
+>
+> The token must be a fine-grained token with the **"Make calls to Inference
+> Providers"** permission. The original spec models (`meta-llama/Llama-3-8B-Instruct`,
 > `black-forest-labs/FLUX.1-schnell`, `stabilityai/stable-video-diffusion-img2vid-xt`)
-> are retired upstream; the ids above are their current-generation replacements
-> and can be overridden with the env vars (append `:provider` to pin a provider,
-> e.g. `meta-llama/Llama-3.1-8B-Instruct:cerebras`).
+> are retired upstream; the ids above are their current-generation replacements.
 
 All calls use the standard `Authorization: Bearer <HF_API_TOKEN>` header and
 `x-wait-for-model: true` (blocks until the model is loaded instead of returning
