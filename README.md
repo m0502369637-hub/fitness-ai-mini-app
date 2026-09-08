@@ -34,6 +34,7 @@ payments** — fully bilingual (English / العربية with RTL).
 | Progress dashboard | Home tracks points, plans, workouts, coach calls, and a weekly activity bar chart built from real transactions. |
 | Wallet & history | Profile shows balance, buy-points card, profile summary, feature shortcuts, language switcher, and the full point-history ledger. |
 | Landing page | `/landing` — SaaS-style marketing page (EN/AR toggle) with metadata, Open Graph, sitemap, `robots.txt` and `llms.txt` for search/LLM discovery. |
+| Marketing Engine | Autonomous daily pipeline (`convex/marketing/`): **08:00** HF generation (Llama-3 captions, FLUX.1-schnell image, SVD video) → **10:00** distribution (Composio to X/LinkedIn/Instagram/TikTok + Telegram broadcast to all users, 25 msg/sec) → **23:00** storage cleanup. Dormant until `MARKETING_ENABLED=true`. |
 | Privacy policy | `/privacy` — standalone policy page for the BotFather "Privacy Policy URL" setting. |
 | Light/dark | Dark brand theme by default; a light variant applies for Telegram light theme. |
 | Demo mode | Outside Telegram or without Convex, the app runs on in-memory data so the UI is previewable in a browser. |
@@ -87,6 +88,29 @@ Vision (`coach:analyzeBodyImage`) and plan editing (`coach:proposePlanEdit` →
 
 See [`convex/schema.ts`](convex/schema.ts) for the exact definition.
 
+## Marketing Engine (Autonomous Marketing OS)
+
+Self-contained module in [`convex/marketing/`](convex/marketing/) that generates, distributes and
+cleans up marketing content on a daily heartbeat (all times UTC):
+
+| File | Role |
+| --- | --- |
+| [`schema.ts`](convex/marketing/schema.ts) | `marketingCampaigns`, `marketingAssets`, `marketingLogs`, `marketingDistributions` tables (merged into the app schema) |
+| [`generator.ts`](convex/marketing/generator.ts) | Hugging Face: `meta-llama/Llama-3-8B-Instruct` platform captions → `black-forest-labs/FLUX.1-schnell` branded image → `stabilityai/stable-video-diffusion-img2vid-xt` video; all saved to Convex File Storage (`storageId` + `getUrl()` recorded) |
+| [`distributor.ts`](convex/marketing/distributor.ts) | Composio `/actions/{action}/execute` posts to X/LinkedIn/Instagram/TikTok (per-platform isolation + X text-only fallback) + Telegram Bot API broadcast to every app user in **25 users/sec** batches (under Telegram's ~30 msg/sec limit) |
+| [`cleaner.ts`](convex/marketing/cleaner.ts) | 24h after a campaign completes → `ctx.storage.delete(storageId)` for image/video, retrying failed deletes nightly |
+| [`crons.ts`](convex/marketing/crons.ts) | 08:00 generate · 10:00 distribute · 23:00 cleanup (re-exported from [`convex/crons.ts`](convex/crons.ts)) |
+| [`PROMPTS.md`](convex/marketing/PROMPTS.md) | Exact LLM/image/video prompts, Composio action map, env vars and operating notes |
+
+Requirements: `HF_API_TOKEN`, `COMPOSIO_API_KEY` (+ `COMPOSIO_CONNECTED_ACCOUNT_ID_*` per
+platform), `MARKETING_ENABLED=true`. Every step is isolated — failures are logged to
+`marketingLogs` and never block the remaining channels. Manual triggers:
+
+```bash
+npx convex run marketing/generator:generateCampaign '{theme:"30-day challenge", brandColor:"#d7f26d"}' --prod
+npx convex run marketing/distributor:runDistribution '{}' --prod
+```
+
 ## Setup
 
 ### 1. Prerequisites
@@ -112,6 +136,12 @@ npx convex env set TELEGRAM_BOT_TOKEN <bot-token>
 npx convex env set API_SECRET <random-secret>
 npx convex env set DEEPSEEK_API_KEY <deepseek-key>     # prod: add --prod
 npx convex run packages:seed   # seed the point packages
+
+# Marketing Engine (optional — dormant until MARKETING_ENABLED=true)
+npx convex env set MARKETING_ENABLED true --prod
+npx convex env set HF_API_TOKEN <huggingface-token> --prod
+npx convex env set COMPOSIO_API_KEY <composio-key> --prod
+npx convex env set COMPOSIO_CONNECTED_ACCOUNT_ID_X <account-id> --prod   # + LINKEDIN/INSTAGRAM/TIKTOK
 ```
 
 `npx convex dev` prints a deployment URL — put it in `.env.local` as **both**

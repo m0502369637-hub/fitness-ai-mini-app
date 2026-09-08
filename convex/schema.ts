@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { marketingTables } from "./marketing/schema";
 
 export default defineSchema({
   // User identity + live points balance
@@ -150,4 +151,7 @@ export default defineSchema({
   })
     .index("by_payload", ["payload"])
     .index("by_userId", ["userId"]),
+
+  // Marketing Engine tables — defined in convex/marketing/schema.ts.
+  ...marketingTables,
 });
