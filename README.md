@@ -23,11 +23,11 @@ payments** — fully bilingual (English / العربية with RTL).
 | Model switching by capability | A model registry (`convex/lib/models.ts`) routes text → `deepseek-v4-flash` and vision → `deepseek-v4-flash-vision-exp` (base64 image input, reasoning-model token budget). |
 | Body photo analysis | Upload a photo in the Coach tab → stored in Convex → the vision model reviews posture/form against the profile and suggests plan corrections. |
 | Plan editing with approval | "Change my plan" mode in the coach chat: the coach proposes structured edits (replace / update / add / remove exercises, sets, reps) and the user must **approve** before anything is applied. |
-| Workout plans | Goal + level generator in the Plan tab (250 pts), prefilled from the onboarding profile. Every plan runs for a defined period of **max 8 weeks (two months)** and shows its period and end date. |
+| Workout plans | Goal + level generator in the Plan tab (250 pts), prefilled from the onboarding profile. The user picks a **start and end date** for a program of **max 8 weeks (two months)** per generation, and every plan shows a **week-by-week progress chart**, its period and end date. |
 | Exercise library | Plans draw from a curated subset of [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain) — every exercise shows its 2+ form images, muscle groups, equipment, and step-by-step instructions, **localized in Arabic**. |
 | Exercise tracking | Tick/untick every exercise per day; per-day and per-plan progress bars update live. |
-| Progress rollups | Plan-page summary shows **plan count, exercises done/total, the active plan's period & end date**, plus completed-exercise counts for **today / week / month / all-time** — all stored in Convex and fed to the AI coach. |
-| Telegram Stars payments | Top-up package **1000 pts / 100 ⭐**. Invoice via Bot API, payment verified via the `successful_payment` webhook. |
+| Progress rollups | Plan-page summary shows **plan count, exercises done/total, the active plan's period & end date**, a **per-week progress bar chart**, plus completed-exercise counts for **today / week / month / all-time** — all stored in Convex and fed to the AI coach. |
+| Telegram Stars payments | Top-up packages **500 pts / 50 ⭐** and **1000 pts / 100 ⭐**. Invoice via Bot API, payment verified via the `successful_payment` webhook. |
 | Refunds | Admin `/refund <tgId>` command in the bot chat → `refundStarPayment` + points reversal with a `↩️ Refund` history entry. |
 | English & Arabic | Full i18n layer (`lib/i18n`) with EN/AR dictionaries, automatic RTL, localized exercise names/instructions, and a language switcher in Profile + onboarding. |
 | Feature requests | Profile → "Request a feature" popup form → stored in the `featureRequests` table. |
@@ -78,7 +78,7 @@ Vision (`coach:analyzeBodyImage`) and plan editing (`coach:proposePlanEdit` →
 - `users` — `tgId`, `name`, `pointsBalance`, `createdAt`, `onboarded`, `language`
 - `userProfiles` — onboarding questionnaire answers
 - `transactions` — immutable ledger (`amount` +/-, `type`, `pointsAfter`, `timestamp`)
-- `workoutPlans` — saved generated plans (period in weeks ≤ 8, exercises with images + instructions)
+- `workoutPlans` — saved generated plans (start/end dates + period in weeks ≤ 8, exercises with images + instructions)
 - `exerciseLogs` — per-exercise completion ticks (day/week/month/all-time rollups)
 - `coachMessages` — persisted AI coach conversation
 - `pointPackages` — server-side source of truth for prices

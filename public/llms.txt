@@ -6,11 +6,11 @@
 
 - Onboarding questionnaire: goal, level, experience, weekly training days, equipment, body stats, injuries and diet.
 - AI Coach chat: DeepSeek-powered answers grounded in the user's profile, saved plans, exercise logs and progress stats. Points are charged per query (5 pts) and only after a successful answer.
-- Workout plan generation: structured weekly plans (push/pull/legs/core/cardio) built from the user's goal and level, each running for a set period of up to 8 weeks (two months), with per-exercise images and step-by-step instructions from the public-domain free-exercise-db library.
+- Workout plan generation: structured weekly plans (push/pull/legs/core/cardio) built from the user's goal and level, with the user choosing a start and end date for a program of up to 8 weeks (two months) per generation; each plan ships with a week-by-week progress chart.
 - Plan editing with approval: the coach proposes structured edits (replace/update/add/remove exercises, change sets and reps); the user approves before anything is applied.
-- Exercise tracking: tick every exercise; day/week/month/all-time progress rollups plus plan counts and exercises-done totals are persisted and fed back to the coach.
+- Exercise tracking: tick every exercise; day/week/month/all-time rollups plus plan counts, exercises-done totals and a per-week progress chart are persisted and fed back to the coach.
 - Body photo analysis: users upload photos; a DeepSeek vision model analyzes posture/form against the profile and suggests plan corrections.
-- Points economy: 250 free welcome points; AI coach answers cost 50 pts, workout plans cost 250 pts (the welcome bonus covers the first plan), plan-edit proposals cost 50 pts; Telegram Stars top-up (1000 pts / 100 ⭐) with pre-checkout validation and refund support.
+- Points economy: 250 free welcome points; AI coach answers cost 50 pts, workout plans cost 250 pts (the welcome bonus covers the first plan), plan-edit proposals cost 50 pts; Telegram Stars top-ups (500 pts / 50 ⭐ and 1000 pts / 100 ⭐) with pre-checkout validation and refund support.
 - Localization: English and Arabic dictionaries, RTL layout for Arabic, localized exercise names and instructions.
 
 ## Technology

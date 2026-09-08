@@ -70,6 +70,8 @@ export default defineSchema({
     goal: v.optional(v.string()),
     level: v.optional(v.string()),
     durationWeeks: v.optional(v.number()), // program length, max 8 weeks (two months)
+    startDate: v.optional(v.number()), // ms epoch — chosen start of the program
+    endDate: v.optional(v.number()), // ms epoch — chosen end (span ≤ 8 weeks)
     days: v.array(
       v.object({
         day: v.string(),

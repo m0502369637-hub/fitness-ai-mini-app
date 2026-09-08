@@ -173,12 +173,12 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
     )
 
     const generatePlan = useCallback(
-        async (goal: string, level: string): Promise<PlanResult> => {
+        async (goal: string, level: string, startDate?: number, endDate?: number): Promise<PlanResult> => {
             const initData = webApp?.initData
             if (!initData || !userId) {
                 return { ok: false, reason: 'INSUFFICIENT_POINTS', balance: 0, required: 0 }
             }
-            return generatePlanMutation({ initData, goal, level })
+            return generatePlanMutation({ initData, goal, level, startDate, endDate })
         },
         [webApp, userId, generatePlanMutation],
     )

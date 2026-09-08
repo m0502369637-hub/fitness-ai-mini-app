@@ -14,6 +14,13 @@ export interface PointPackage {
 
 export const DEFAULT_PACKAGES: PointPackage[] = [
   {
+    key: "pack_500",
+    title: "500 Points",
+    description: "50 Telegram Stars",
+    points: 500,
+    stars: 50,
+  },
+  {
     key: "pack_1000",
     title: "1000 Points",
     description: "100 Telegram Stars",

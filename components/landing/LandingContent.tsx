@@ -174,7 +174,15 @@ export function LandingContent() {
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl font-black text-center">{t('landing.pricingTitle')}</h2>
           <p className="mt-3 text-center text-white/60">{t('landing.pricingSub')}</p>
-          <div className="mt-12 max-w-md mx-auto">
+          <div className="mt-12 grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            <div className="rounded-3xl bg-[#17171c] border border-white/10 p-8 text-center">
+              <p className="text-lg font-extrabold">{t('landing.pack500')}</p>
+              <p className="mt-1 text-sm text-white/60">{t('landing.pack500d')}</p>
+              <p className="mt-5 text-4xl font-black flex items-center justify-center gap-2">
+                <Star size={28} className="text-[#d7f26d] fill-[#d7f26d]" />
+                50
+              </p>
+            </div>
             <div className="rounded-3xl bg-[#d7f26d] text-[#0b0c0e] p-8 text-center">
               <p className="text-lg font-extrabold">{t('landing.pack1000')}</p>
               <p className="mt-1 text-sm opacity-70">{t('landing.pack1000d')}</p>
@@ -183,9 +191,9 @@ export function LandingContent() {
                 100
               </p>
             </div>
-            <p className="mt-4 text-center text-sm text-white/60">{t('landing.pricingNote')}</p>
           </div>
-          <div className="mt-8 flex items-center justify-center gap-2 text-sm text-white/60">
+          <p className="mt-6 text-center text-sm text-white/60">{t('landing.pricingNote')}</p>
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-white/60">
             <CheckCircle2 size={16} className="text-[#d7f26d]" />
             {t('landing.freeNote')}
           </div>

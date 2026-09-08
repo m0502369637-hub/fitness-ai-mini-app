@@ -200,7 +200,7 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
     }, [])
 
     const generatePlan = useCallback(
-        async (goal: string, level: string): Promise<PlanResult> => {
+        async (goal: string, level: string, startDate?: number, endDate?: number): Promise<PlanResult> => {
             if (user.pointsBalance < PLAN_COST) {
                 return {
                     ok: false,
@@ -211,26 +211,35 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
             }
             const newBalance = user.pointsBalance - PLAN_COST
             const g = generateMockPlan(goal, level)
+            const now = Date.now()
+            const start = startDate ?? now
+            let end = endDate ?? start + 8 * 7 * 86400000
+            const maxEnd = start + 8 * 7 * 86400000
+            if (end <= start) end = start + 8 * 7 * 86400000
+            else if (end > maxEnd) end = maxEnd
+            const durationWeeks = Math.max(1, Math.round((end - start) / (7 * 86400000)))
             const plan: AppPlan = {
-                _id: `plan_${Date.now()}`,
+                _id: `plan_${now}`,
                 userId: user._id,
                 title: g.title,
                 goal,
                 level,
-                durationWeeks: g.durationWeeks,
+                durationWeeks,
+                startDate: start,
+                endDate: end,
                 days: g.days,
-                createdAt: Date.now(),
+                createdAt: now,
             }
             setUser((u) => ({ ...u, pointsBalance: newBalance }))
             setTransactions((t) => [
                 {
-                    _id: `tx_${Date.now()}`,
+                    _id: `tx_${now}`,
                     userId: user._id,
                     amount: -PLAN_COST,
                     type: 'use_plan',
                     description: `-${PLAN_COST} Workout Plan`,
                     pointsAfter: newBalance,
-                    timestamp: Date.now(),
+                    timestamp: now,
                 },
                 ...t,
             ])

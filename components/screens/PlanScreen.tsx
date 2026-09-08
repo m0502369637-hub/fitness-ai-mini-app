@@ -53,11 +53,29 @@ function levelFromProfile(level?: string): string {
   return 'Intermediate'
 }
 
+function localDateInput(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function parseLocal(dateStr: string): number {
+  return new Date(`${dateStr}T00:00:00`).getTime()
+}
+
+function addDays(dateStr: string, days: number): string {
+  return localDateInput(new Date(parseLocal(dateStr) + days * 86400000))
+}
+
+function weeksSpan(startStr: string, endStr: string): number {
+  return Math.round((parseLocal(endStr) - parseLocal(startStr)) / (7 * 86400000))
+}
+
 interface ProgramView {
   _id: string
   title: string
   days: AppPlanDay[]
   durationWeeks?: number
+  startDate?: number
+  endDate?: number
   createdAt?: number
 }
 
@@ -70,6 +88,11 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GeneratedPlan | null>(null)
 
+  // Program period: user picks a start + end date, clamped to ≤ 8 weeks per generation.
+  const [startDate, setStartDate] = useState(() => localDateInput(new Date()))
+  const [endDate, setEndDate] = useState(() => addDays(localDateInput(new Date()), 8 * 7))
+  const selectedWeeks = Math.max(1, Math.min(8, weeksSpan(startDate, endDate)))
+
   // Summary numbers: how many plans, exercises total + done, active plan period.
   const totalExercises = plans.reduce(
     (s, p) => s + p.days.reduce((a, d) => a + d.exercises.length, 0),
@@ -78,18 +101,27 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
   const doneTotal = exerciseLogs.filter((l) => l.completed).length
   const latest = plans[0]
   const latestWeeks = latest?.durationWeeks ?? 8
-  const endDate = latest
-    ? new Date(latest.createdAt + latestWeeks * 7 * 86400000).toLocaleDateString(
-        lang === 'ar' ? 'ar' : undefined,
-        { month: 'short', day: 'numeric' },
-      )
+  const latestEnd = latest?.endDate ?? (latest ? latest.createdAt + latestWeeks * 7 * 86400000 : undefined)
+  const endDateLabel = latestEnd
+    ? new Date(latestEnd).toLocaleDateString(lang === 'ar' ? 'ar' : undefined, {
+        month: 'short',
+        day: 'numeric',
+      })
     : ''
 
   const generate = async () => {
     if (loading) return
     impact('medium')
     setLoading(true)
-    const res = await generatePlan(goal, level)
+    const start = parseLocal(startDate)
+    let end = parseLocal(endDate)
+    const maxEnd = start + 8 * 7 * 86400000
+    if (end <= start) end = start + 8 * 7 * 86400000
+    else if (end > maxEnd) {
+      end = maxEnd
+      toast.warning(t('plan.maxPeriod'))
+    }
+    const res = await generatePlan(goal, level, start, end)
     setLoading(false)
     if (res.ok) {
       setResult(res.plan)
@@ -118,7 +150,7 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
             <span>{t('plan.plansCount', { count: plans.length })}</span>
             {latest && (
               <span className="truncate">
-                {t('plan.period', { weeks: latestWeeks })} · {t('plan.ends', { date: endDate })}
+                {t('plan.period', { weeks: latestWeeks })} · {t('plan.ends', { date: endDateLabel })}
               </span>
             )}
           </div>
@@ -186,6 +218,57 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
             </select>
           </label>
         </div>
+
+        {/* Program period (start → end, max 8 weeks) */}
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
+              {t('plan.startDate')}
+            </span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="mt-1 w-full p-3 rounded-xl bg-[var(--c-surface-2)] text-[var(--c-text)] text-sm outline-none"
+              style={{ border: '1px solid var(--c-border)', colorScheme: 'dark' }}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-semibold text-[var(--c-muted)] uppercase tracking-wide">
+              {t('plan.endDate')}
+            </span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="mt-1 w-full p-3 rounded-xl bg-[var(--c-surface-2)] text-[var(--c-text)] text-sm outline-none"
+              style={{ border: '1px solid var(--c-border)', colorScheme: 'dark' }}
+            />
+          </label>
+        </div>
+
+        {/* Quick period presets */}
+        <div className="flex items-center gap-2">
+          {[4, 6, 8].map((w) => (
+            <button
+              key={w}
+              onClick={() => setEndDate(addDays(startDate, w * 7))}
+              className={clsx(
+                'flex-1 py-2 rounded-xl text-xs font-bold transition active:scale-95',
+                selectedWeeks === w
+                  ? 'bg-[var(--c-accent)] text-[var(--c-accent-text)]'
+                  : 'bg-[var(--c-surface-2)] text-[var(--c-text)]',
+              )}
+              style={selectedWeeks !== w ? { border: '1px solid var(--c-border)' } : undefined}
+            >
+              {w}w
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-[var(--c-muted)]">
+          {t('plan.periodLabel', { weeks: selectedWeeks })} · {t('plan.maxPeriod')}
+        </p>
+
         <button
           onClick={generate}
           disabled={loading}
@@ -345,6 +428,9 @@ function ProgramSection({
 
       {open && (
         <div className="px-3 pb-3 space-y-3">
+          {/* Progress chart across the program period */}
+          <PlanProgressChart plan={plan} logs={logs} />
+
           {/* Week strip — visualize the program period */}
           <WeekStrip weeks={weeks} current={currentWeek} />
 
@@ -361,6 +447,46 @@ function ProgramSection({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function PlanProgressChart({ plan, logs }: { plan: ProgramView; logs: AppExerciseLog[] }) {
+  const { t } = useLanguage()
+  const weeks = plan.durationWeeks ?? 8
+  const start = plan.startDate ?? plan.createdAt ?? Date.now()
+  const buckets = Array.from({ length: weeks }, () => 0)
+  for (const l of logs) {
+    if (!l.completed || l.planId !== plan._id) continue
+    const w = Math.floor((l.completedAt - start) / (7 * 86400000))
+    if (w >= 0 && w < weeks) buckets[w] += 1
+  }
+  const max = Math.max(...buckets, 1)
+  const doneInProgram = buckets.reduce((a, b) => a + b, 0)
+  return (
+    <div className="rounded-2xl bg-[var(--c-surface-2)] p-3" style={{ border: '1px solid var(--c-border)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">
+          {t('plan.chartTitle')}
+        </p>
+        <span className="text-xs font-bold text-[var(--c-accent)]">
+          {doneInProgram} {t('plan.exercisesDone')}
+        </span>
+      </div>
+      <div className="flex items-end justify-between gap-1 h-20">
+        {buckets.map((v, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+            <div
+              className="w-full rounded-md"
+              style={{
+                height: `${Math.max(6, (v / max) * 100)}%`,
+                backgroundColor: v > 0 ? 'var(--c-accent)' : 'var(--c-surface)',
+              }}
+            />
+            <span className="text-[9px] font-bold text-[var(--c-muted)]">{i + 1}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

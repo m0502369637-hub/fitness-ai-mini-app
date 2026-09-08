@@ -94,6 +94,8 @@ export interface AppPlan {
   goal?: string;
   level?: string;
   durationWeeks?: number;
+  startDate?: number;
+  endDate?: number;
   days: AppPlanDay[];
   createdAt: number;
 }
@@ -102,6 +104,8 @@ export interface GeneratedPlan {
   _id: string;
   title: string;
   durationWeeks?: number;
+  startDate?: number;
+  endDate?: number;
   days: AppPlanDay[];
 }
 
@@ -198,7 +202,7 @@ export interface AppData {
   submitFeatureRequest: (title: string, description: string, contact?: string) => Promise<void>;
   saveProfile: (answers: ProfileAnswers, language?: string) => Promise<void>;
   setLanguage: (language: string) => Promise<void>;
-  generatePlan: (goal: string, level: string) => Promise<PlanResult>;
+  generatePlan: (goal: string, level: string, startDate?: number, endDate?: number) => Promise<PlanResult>;
   buyPackage: (pkg: AppPackage) => Promise<void>;
   toggleExercise: (args: ToggleExerciseArgs) => Promise<void>;
 }
