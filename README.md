@@ -1,30 +1,40 @@
 # FitAI — Fitness AI Mini App
 
-A Telegram Mini App that combines an **AI coach** and **custom workout plans** with a
-**points-based economy** and **Telegram Stars (XTR) payments**.
+A Telegram Mini App that combines a **DeepSeek-powered AI coach**, **custom workout plans**,
+**exercise & progress tracking**, and a **points-based economy** with **Telegram Stars (XTR)
+payments** — fully bilingual (English / العربية with RTL).
 
-- **Frontend:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 — a
-  dark, chartreuse-accented fitness UI designed for Telegram Mini Apps.
+- **Frontend:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 — a dark,
+  chartreuse-accented fitness UI designed for Telegram Mini Apps.
 - **Backend:** [Convex](https://convex.dev) — realtime database, serverless functions,
   reactive `useQuery`-driven UI.
+- **AI:** DeepSeek — `deepseek-v4-flash` (text) and `deepseek-v4-flash-vision-exp` (vision),
+  routed by capability through a small model registry.
+- **Marketing:** a SaaS-style landing page (`/landing`, EN + AR, SEO/LLM-friendly) and a
+  privacy policy page (`/privacy`) for BotFather.
 
 ## Features
 
 | Feature | How it works |
 | --- | --- |
-| Onboarding + welcome bonus | First launch registers the user and credits **50 points** (idempotent, single mutation). |
-| Points economy | AI Coach = **5 pts**/query · Workout plan = **15 pts**/generation. Balance is checked & debited atomically server-side. |
-| English UI | Dark, high-contrast fitness dashboard with a chartreuse accent — greeting, stat cards, weekly activity chart, and a "create plan" CTA. |
+| Onboarding questionnaire | First launch credits **50 welcome points**, then an 8-step wizard collects goal, level, experience, weekly days, equipment, body stats and limitations into a `userProfiles` record shown on the Profile page. |
+| Points economy | AI Coach = **5 pts**/query · Plan = **15 pts** · Plan-edit proposal = **5 pts**. Balance is checked & debited atomically server-side. |
+| AI Coach (DeepSeek) | Chat-style coach answers grounded in live context: profile, goals, saved plans, exercise logs, progress and chat history. Conversation persists across sessions. |
+| Model switching by capability | A model registry (`convex/lib/models.ts`) routes text → `deepseek-v4-flash` and vision → `deepseek-v4-flash-vision-exp` (base64 image input, reasoning-model token budget). |
+| Body photo analysis | Upload a photo in the Coach tab → stored in Convex → the vision model reviews posture/form against the profile and suggests plan corrections. |
+| Plan editing with approval | "Change my plan" mode in the coach chat: the coach proposes structured edits (replace / update / add / remove exercises, sets, reps) and the user must **approve** before anything is applied. |
+| Workout plans | Goal + level generator in the Plan tab (15 pts), prefilled from the onboarding profile, saved to Convex and shown live with a "current plan" card on Home. |
+| Exercise library | Plans draw from a curated subset of [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain) — every exercise shows its 2+ form images, muscle groups, equipment, and step-by-step instructions, **localized in Arabic**. |
+| Exercise tracking | Tick/untick every exercise per day; per-day and per-plan progress bars update live. |
+| Progress rollups | Completed-exercise counts for **today / week / month / all-time**, stored in Convex and fed to the AI coach. |
 | Telegram Stars payments | Point packages (50 pts / 10 ⭐, 150 pts / 25 ⭐). Invoice via Bot API, payment verified via the `successful_payment` webhook. |
 | Refunds | Admin `/refund <tgId>` command in the bot chat → `refundStarPayment` + points reversal with a `↩️ Refund` history entry. |
-| AI Coach | Chat-style coaching in the Coach tab; each query costs 5 points; mock AI behind a swappable interface. |
-| Workout plans | Goal + level generator in the Plan tab (15 pts), plans saved to Convex and shown live, with a "current plan" card on Home. |
-| Exercise library | Plans draw from a curated subset of [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain) — every exercise shows its illustration, muscle groups, equipment, and step-by-step instructions. |
-| Exercise tracking | Tick/untick every exercise per day; a progress bar per day and per plan updates live. |
-| Progress rollups | Completed-exercise counts for **today / week / month / all-time**, stored in Convex so the future AI coach can read your training history. |
+| English & Arabic | Full i18n layer (`lib/i18n`) with EN/AR dictionaries, automatic RTL, localized exercise names/instructions, and a language switcher in Profile + onboarding. |
+| Feature requests | Profile → "Request a feature" popup form → stored in the `featureRequests` table. |
 | Progress dashboard | Home tracks points, plans, workouts, coach calls, and a weekly activity bar chart built from real transactions. |
-| Wallet & history | Profile shows balance, buy-points card, feature shortcuts, and the full point-history ledger. |
-| Live balance | Convex reactive queries update points/balance in real time across screens. |
+| Wallet & history | Profile shows balance, buy-points card, profile summary, feature shortcuts, language switcher, and the full point-history ledger. |
+| Landing page | `/landing` — SaaS-style marketing page (EN/AR toggle) with metadata, Open Graph, sitemap, `robots.txt` and `llms.txt` for search/LLM discovery. |
+| Privacy policy | `/privacy` — standalone policy page for the BotFather "Privacy Policy URL" setting. |
 | Light/dark | Dark brand theme by default; a light variant applies for Telegram light theme. |
 | Demo mode | Outside Telegram or without Convex, the app runs on in-memory data so the UI is previewable in a browser. |
 
@@ -32,12 +42,24 @@ A Telegram Mini App that combines an **AI coach** and **custom workout plans** w
 
 ```
 Telegram Mini App (Next.js)
-  ├─ UI (screens + components)          ── useAppData() ──┐
-  ├─ ConvexAppDataProvider              ── useQuery/useMutation ──► Convex
+  ├─ UI (screens + components)            ── useAppData() ──┐
+  ├─ ConvexAppDataProvider                ── useQuery/useMutation/useAction ──► Convex
   └─ API routes
-       ├─ /api/invoice                  ── createInvoiceLink + createPending
-       └─ /api/telegram/webhook         ── pre_checkout_query + successful_payment
+       ├─ /api/invoice                    ── createInvoiceLink + createPending
+       └─ /api/telegram/webhook           ── pre_checkout_query + successful_payment + refunds
 ```
+
+**AI coach flow (text):**
+
+1. Client calls the `coach:askCoach` **action** with `initData` + message.
+2. Action → `ctx.runMutation(checkInitData)` (HMAC-validates initData, returns balance) →
+   `ctx.runQuery(getCoachContext)` (profile + progress + plans + chat history).
+3. Action calls DeepSeek with the system prompt (`prompts/coach-system.md`) + live context.
+4. On success → `ctx.runMutation(finalizeCoach)` charges 5 pts, writes the ledger entry, and
+   persists both chat messages.
+
+Vision (`coach:analyzeBodyImage`) and plan editing (`coach:proposePlanEdit` →
+`coach:applyPlanEdit`) follow the same action + `ctx.runMutation` pattern.
 
 **Payment verification (authoritative flow):**
 
@@ -53,11 +75,15 @@ Telegram Mini App (Next.js)
 
 ## Convex schema
 
-- `users` — `tgId`, `name`, `pointsBalance`, `createdAt`
-- `transactions` — immutable ledger (`amount` +/- , `type`, `pointsAfter`, `timestamp`)
-- `workoutPlans` — saved generated plans
+- `users` — `tgId`, `name`, `pointsBalance`, `createdAt`, `onboarded`, `language`
+- `userProfiles` — onboarding questionnaire answers
+- `transactions` — immutable ledger (`amount` +/-, `type`, `pointsAfter`, `timestamp`)
+- `workoutPlans` — saved generated plans (exercises with images + instructions)
+- `exerciseLogs` — per-exercise completion ticks (day/week/month/all-time rollups)
+- `coachMessages` — persisted AI coach conversation
 - `pointPackages` — server-side source of truth for prices
 - `payments` — invoice state (pending → completed) + `telegramPaymentChargeId`
+- `featureRequests` — user-submitted feature requests
 
 See [`convex/schema.ts`](convex/schema.ts) for the exact definition.
 
@@ -68,6 +94,7 @@ See [`convex/schema.ts`](convex/schema.ts) for the exact definition.
 - Node.js 18+
 - A Telegram bot token from [@BotFather](https://t.me/botfather)
 - A free [Convex](https://dashboard.convex.dev) account
+- A [DeepSeek](https://platform.deepseek.com) API key (one key powers text + vision)
 - `ngrok` (or any HTTPS tunnel) for local Telegram testing
 
 ### 2. Install
@@ -83,6 +110,7 @@ cp .env.example .env.local
 npx convex dev          # logs you in, creates/selects a project, starts the dev backend
 npx convex env set TELEGRAM_BOT_TOKEN <bot-token>
 npx convex env set API_SECRET <random-secret>
+npx convex env set DEEPSEEK_API_KEY <deepseek-key>     # prod: add --prod
 npx convex run packages:seed   # seed the point packages
 ```
 
@@ -97,7 +125,11 @@ TELEGRAM_BOT_SECRET_TOKEN=<random-webhook-secret>
 CONVEX_URL=<convex-url>
 NEXT_PUBLIC_CONVEX_URL=<convex-url>
 API_SECRET=<same-random-secret-as-convex>
+DEEPSEEK_API_KEY=<deepseek-key>
 ```
+
+> **Never commit `DEEPSEEK_API_KEY`.** `.env.local` is gitignored; store the key in the
+> Convex deployment env (`npx convex env set DEEPSEEK_API_KEY <key> --prod`).
 
 ### 5. Run
 
@@ -113,6 +145,7 @@ ngrok http 3000
 ```
 
 - Set your bot's **Menu Button** URL in BotFather to the ngrok HTTPS URL.
+- Set the **Privacy Policy URL** in BotFather to `https://<your-domain>/privacy`.
 - Register the payment webhook:
 
 ```bash
@@ -120,6 +153,16 @@ curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://<ngrok-or-domain>/api/telegram/webhook","secret_token":"<TELEGRAM_BOT_SECRET_TOKEN>"}'
 ```
+
+## AI prompts
+
+Detailed system prompts live as markdown under [`prompts/`](prompts/):
+
+- [`prompts/coach-system.md`](prompts/coach-system.md) — coach persona, safety rules, context usage
+- [`prompts/vision-analysis.md`](prompts/vision-analysis.md) — body/form photo analysis contract
+- [`prompts/plan-generator.md`](prompts/plan-generator.md) — plan-generation JSON contract (future LLM generator)
+
+The runtime copies are exported from [`convex/lib/prompts.ts`](convex/lib/prompts.ts).
 
 ## Refunds (Telegram Stars)
 
@@ -136,20 +179,20 @@ Admin-only, driven from the bot chat:
 
 If `NEXT_PUBLIC_CONVEX_URL` is unset, or the app is opened outside Telegram, it runs with
 in-memory mock data (`providers/DemoAppData.tsx`) so you can preview the whole UI in a
-browser. Purchases are simulated. The real flows require Telegram + Convex.
-
-## Swapping the mock AI for a real model
-
-The coach/plan "AI" is a deterministic mock in [`convex/lib/mock.ts`](convex/lib/mock.ts).
-To use a real model, replace `mockCoachResponse` / `generateMockPlan` with a call to your
-provider (OpenAI, Claude, DeepSeek, etc.) inside a Convex **action** (actions may call
-`fetch`), then call that action from `convex/points.ts`. Points charging and history remain
-unchanged. The future AI coach will also be able to read a user's `exerciseLogs` /
-`progressStats` to personalize advice from their training history.
+browser. Purchases, coach answers and photo analysis are simulated. The real flows require
+Telegram + Convex.
 
 ## Exercise data
 
 Plans use a curated subset of exercises from
 [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain),
-vendored in [`convex/lib/exercises.ts`](convex/lib/exercises.ts). Exercise illustrations are
-served from the library's GitHub-hosted assets.
+vendored in [`convex/lib/exercises.ts`](convex/lib/exercises.ts) with **English and Arabic**
+names/instructions. Exercise illustrations are served from the jsDelivr CDN mirror of the
+library's GitHub assets.
+
+## SEO / LLM discovery
+
+- Landing page: `https://fitness-ai-mini-app.vercel.app/landing`
+- Privacy policy: `https://fitness-ai-mini-app.vercel.app/privacy`
+- `llms.txt`: `https://fitness-ai-mini-app.vercel.app/llms.txt`
+- `robots.txt` + sitemap: `https://fitness-ai-mini-app.vercel.app/robots.txt`

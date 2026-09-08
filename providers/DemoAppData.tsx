@@ -134,6 +134,13 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         [plans, user.pointsBalance],
     )
 
+    const submitFeatureRequest = useCallback(
+        async (_title: string, _description: string, _contact?: string) => {
+            // Demo mode — nothing to persist, the UI still confirms success.
+        },
+        [],
+    )
+
     const applyPlanEdit = useCallback(async (planId: string, operations: PlanEditOperation[]) => {
         setPlans((prev) =>
             prev.map((p) => {
@@ -317,6 +324,7 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
         uploadImage,
         proposePlanEdit,
         applyPlanEdit,
+        submitFeatureRequest,
         saveProfile,
         setLanguage,
         generatePlan,

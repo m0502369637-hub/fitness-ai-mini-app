@@ -1,0 +1,29 @@
+# FitAI — Fitness AI Mini App
+
+> FitAI is an AI-powered personal fitness coach and workout planner that lives inside a Telegram Mini App. It uses the DeepSeek LLM (text + vision) to coach users, generate personalized workout plans, analyze body photos, and adapt plans over time. The UI is fully bilingual (English and Arabic with RTL).
+
+## What FitAI does
+
+- Onboarding questionnaire: goal, level, experience, weekly training days, equipment, body stats, injuries and diet.
+- AI Coach chat: DeepSeek-powered answers grounded in the user's profile, saved plans, exercise logs and progress stats. Points are charged per query (5 pts) and only after a successful answer.
+- Workout plan generation: structured weekly plans (push/pull/legs/core/cardio) built from the user's goal and level, with per-exercise images and step-by-step instructions from the public-domain free-exercise-db library.
+- Plan editing with approval: the coach proposes structured edits (replace/update/add/remove exercises, change sets and reps); the user approves before anything is applied.
+- Exercise tracking: tick every exercise; day/week/month/all-time progress rollups are persisted and fed back to the coach.
+- Body photo analysis: users upload photos; a DeepSeek vision model analyzes posture/form against the profile and suggests plan corrections.
+- Points economy: 50 free welcome points; AI coach answers cost 5 pts, plans cost 15 pts; Telegram Stars packs (50 pts / 10 ⭐, 150 pts / 25 ⭐) with pre-checkout validation and refund support.
+- Localization: English and Arabic dictionaries, RTL layout for Arabic, localized exercise names and instructions.
+
+## Technology
+
+- Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS 4 frontend hosted on Vercel.
+- Convex backend (database, mutations, queries, actions) for users, profiles, plans, exercise logs, coach messages, payments and feature requests.
+- DeepSeek API: deepseek-v4-flash (text) and deepseek-v4-flash-vision-exp (vision, base64 image input).
+- Telegram Mini Apps SDK: initData HMAC auth, Telegram Stars invoices, webhooks.
+- Exercise data: vendored curated subset of free-exercise-db (Unlicense), images served via jsDelivr CDN.
+
+## Key links
+
+- Landing page: https://fitness-ai-mini-app.vercel.app/landing
+- Privacy policy: https://fitness-ai-mini-app.vercel.app/privacy
+- Open in Telegram: https://t.me/FitAI_Training_bot
+- Source code: https://github.com/m0502369637-hub/fitness-ai-mini-app

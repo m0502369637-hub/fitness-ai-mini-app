@@ -36,6 +36,7 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
     const analyzeBodyImageAction = useAction(api.coach.analyzeBodyImage)
     const proposePlanEditAction = useAction(api.coach.proposePlanEdit)
     const applyPlanEditMutation = useMutation(api.coach.applyPlanEdit)
+    const submitFeatureRequestMutation = useMutation(api.feedback.submit)
     const generateUploadUrlMutation = useMutation(api.coach.generateUploadUrl)
     const saveProfileMutation = useMutation(api.users.saveProfile)
     const setLanguageMutation = useMutation(api.users.setLanguage)
@@ -125,6 +126,15 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
             })
         },
         [webApp, userId, applyPlanEditMutation],
+    )
+
+    const submitFeatureRequest = useCallback(
+        async (title: string, description: string, contact?: string) => {
+            const initData = webApp?.initData
+            if (!initData || !userId) return
+            await submitFeatureRequestMutation({ initData, title, description, contact })
+        },
+        [webApp, userId, submitFeatureRequestMutation],
     )
 
     const uploadImage = useCallback(
@@ -237,6 +247,7 @@ export function ConvexAppDataProvider({ children }: { children: React.ReactNode 
         uploadImage,
         proposePlanEdit,
         applyPlanEdit,
+        submitFeatureRequest,
         saveProfile,
         setLanguage,
         generatePlan,

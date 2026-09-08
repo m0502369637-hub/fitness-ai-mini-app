@@ -193,6 +193,7 @@ export interface AppData {
   uploadImage: (file: File) => Promise<string | null>;
   proposePlanEdit: (request: string) => Promise<PlanEditResult>;
   applyPlanEdit: (planId: string, operations: PlanEditOperation[]) => Promise<void>;
+  submitFeatureRequest: (title: string, description: string, contact?: string) => Promise<void>;
   saveProfile: (answers: ProfileAnswers, language?: string) => Promise<void>;
   setLanguage: (language: string) => Promise<void>;
   generatePlan: (goal: string, level: string) => Promise<PlanResult>;

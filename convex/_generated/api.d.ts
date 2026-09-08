@@ -10,6 +10,7 @@
 
 import type * as coach from "../coach.js";
 import type * as coachInternal from "../coachInternal.js";
+import type * as feedback from "../feedback.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_exercises from "../lib/exercises.js";
 import type * as lib_mock from "../lib/mock.js";
@@ -34,6 +35,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   coach: typeof coach;
   coachInternal: typeof coachInternal;
+  feedback: typeof feedback;
   "lib/constants": typeof lib_constants;
   "lib/exercises": typeof lib_exercises;
   "lib/mock": typeof lib_mock;

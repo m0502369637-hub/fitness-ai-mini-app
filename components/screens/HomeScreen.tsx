@@ -36,12 +36,9 @@ export function HomeScreen({
     e.setHours(23, 59, 59, 999)
     return transactions.filter((t) => t.timestamp >= s.getTime() && t.timestamp <= e.getTime()).length
   })
-  const labels = days.map((d) =>
-    d
-      .toLocaleDateString(lang === 'ar' ? 'ar' : undefined, { weekday: 'short' })
-      .slice(0, 3)
-      .toUpperCase(),
-  )
+  const DAY_ABBR_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+  const DAY_ABBR_AR = ['أحد', 'اثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت']
+  const labels = days.map((d) => (lang === 'ar' ? DAY_ABBR_AR : DAY_ABBR_EN)[d.getDay()])
 
   return (
     <div className="space-y-4">

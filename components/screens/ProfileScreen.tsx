@@ -1,12 +1,14 @@
 'use client'
 
-import { Bot, ChevronRight, ClipboardList, Languages, Pencil } from 'lucide-react'
+import { useState } from 'react'
+import { Bot, ChevronRight, ClipboardList, Languages, Lightbulb, Pencil } from 'lucide-react'
 import { useAppData } from '@/lib/appDataContext'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useLanguage } from '@/lib/i18n/LanguageProvider'
 import { Language } from '@/lib/i18n/translations'
 import { HistoryList } from '@/components/ui/HistoryList'
 import { BalanceCard } from '@/components/ui/BalanceCard'
+import { FeatureRequestModal } from '@/components/ui/FeatureRequestModal'
 import { AI_COACH_COST, PLAN_COST } from '@/convex/lib/constants'
 import { TabId } from '@/components/ui/BottomNav'
 import { AppUserProfile } from '@/lib/types'
@@ -23,6 +25,7 @@ export function ProfileScreen({
   const { user, transactions, profile } = useAppData()
   const { user: tgUser } = useTelegram()
   const { t, lang, setLang } = useLanguage()
+  const [featureOpen, setFeatureOpen] = useState(false)
 
   return (
     <div className="space-y-4">
@@ -100,6 +103,18 @@ export function ProfileScreen({
           cost={PLAN_COST}
           onClick={() => onNavigate('plan')}
         />
+        <button
+          onClick={() => setFeatureOpen(true)}
+          className="w-full card p-4 flex items-center gap-4 text-start active:scale-[0.99] transition"
+        >
+          <div className="w-12 h-12 rounded-xl bg-[var(--c-accent-soft)] text-[var(--c-accent)] flex items-center justify-center shrink-0">
+            <Lightbulb size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-[var(--c-text)]">{t('featureRequest.button')}</p>
+          </div>
+          <ChevronRight size={16} className="text-[var(--c-muted)] rtl:rotate-180" />
+        </button>
       </div>
 
       <div className="card p-4">
@@ -119,6 +134,8 @@ export function ProfileScreen({
           Privacy Policy
         </a>
       </p>
+
+      <FeatureRequestModal open={featureOpen} onClose={() => setFeatureOpen(false)} />
     </div>
   )
 }

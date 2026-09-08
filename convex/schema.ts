@@ -93,6 +93,15 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_createdAt", ["userId", "createdAt"]),
 
+  // User-submitted feature requests from the Profile page.
+  featureRequests: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.string(),
+    contact: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
   // Per-exercise completion tracking (tick/untick) for a user's plan.
   exerciseLogs: defineTable({
     userId: v.id("users"),
