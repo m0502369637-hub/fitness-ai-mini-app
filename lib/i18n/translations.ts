@@ -81,6 +81,8 @@ const en: Dict = {
     exercisesDone: 'Exercises done',
     period: '{weeks}-week period',
     ends: 'ends {date}',
+    upNext: 'Up next',
+    activePlan: 'Active plan',
     goals: {
       muscle: 'Muscle gain',
       fat: 'Fat loss',
@@ -330,6 +332,8 @@ const ar: Dict = {
     exercisesDone: 'التمارين المكتملة',
     period: 'فترة {weeks} أسابيع',
     ends: 'ينتهي {date}',
+    upNext: 'التالي',
+    activePlan: 'الخطة النشطة',
     goals: {
       muscle: 'بناء العضلات',
       fat: 'خسارة الدهون',

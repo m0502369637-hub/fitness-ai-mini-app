@@ -110,3 +110,12 @@
   user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* Hide scrollbars on the horizontal week strip */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
