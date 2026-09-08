@@ -114,7 +114,10 @@ return_full_text: false`.
 
 The reply is parsed as JSON with a graceful fallback: if the model returns
 plain text, the whole text becomes the caption and `#hashtags` are extracted
-with a regex scan.
+with a regex scan. **Every caption is post-processed to guarantee the app link**
+`https://t.me/FitAI_Training_bot` is present (appended if the model missed it;
+X captions are trimmed to stay within the character budget). Override the link
+with `APP_URL`.
 
 ---
 
@@ -142,56 +145,61 @@ the engine stores them with `ctx.storage.store()` and records both the
 ## 4. Video prompt
 
 The video stage is **image-to-video**: the input is the image generated in
-step 3, passed as a base64 data URL.
+step 3. Two attempts, in order:
+
+1. **Hugging Face router** — model id from `MARKETING_VIDEO_MODEL`, image passed
+   as a base64 data URL (`{inputs: dataUrl}` / `{inputs: {image: dataUrl}}`).
+2. **fal-ai fallback (Seedance)** — `fal-ai/bytedance/seedance/v1/pro/image-to-video`
+   via the fal queue API (`https://queue.fal.run/<endpoint>`):
+   submit `{ prompt, image_url, duration: "5s" }` → poll the request status →
+   download `data.video.url`. Requires `FAL_API_KEY` (free credits on signup at
+   fal.ai); override with `FAL_VIDEO_ENDPOINT` / `FAL_VIDEO_DURATION`.
 
 ```text
-inputs: "data:image/jpeg;base64,<bytes of the generated image>"
+prompt: "Slow cinematic camera push-in on the athlete, subtle dynamic movement,
+         dramatic rim light, professional fitness advertisement style,
+         <theme>, <topic>, no text, no watermark"
 ```
 
-The engine tries both accepted body shapes (`{inputs: dataUrl}` and
-`{inputs: {image: dataUrl}}`) and returns the first that works. The response is
-stored with the content-type HF returns and its URL is what gets posted to
-video-capable channels.
+If both attempts fail, the step logs the combined error and the campaign
+continues with captions + image.
 
 ---
 
 ## 5. Distribution
 
-### External (Composio)
+### External (Composio API v3.1)
 
-`POST https://backend.composio.dev/api/v2/actions/{action}/execute`
+`POST https://backend.composio.dev/api/v3.1/tools/execute/{tool_slug}`
 
 ```json
 {
-  "connectedAccountId": "<from env>",
-  "input": { "text": "<caption>", "media": ["<imageUrl>", "<videoUrl>"] }
+  "connected_account_id": "<from env>",
+  "arguments": { "...": "tool-specific input" }
 }
 ```
 
-| Platform | Default tool slug | Env override |
+| Platform | Tool flow | Extra env |
 | --- | --- | --- |
-| X | `TWITTER_CREATE_TWEET` | `COMPOSIO_ACTION_X` |
-| Facebook | `FACEBOOK_CREATE_POST` | `COMPOSIO_ACTION_FACEBOOK` |
-| LinkedIn | `LINKEDIN_CREATE_LINKED_IN_POST` | `COMPOSIO_ACTION_LINKEDIN` |
-| Instagram | `INSTAGRAM_MEDIA_CREATE` | `COMPOSIO_ACTION_INSTAGRAM` |
-| TikTok (optional) | `TIKTOK_POST_VIDEO` | `COMPOSIO_ACTION_TIKTOK` |
-
-Composio API v3: `POST https://backend.composio.dev/api/v3/tools/execute/{tool_slug}`
-with body `{ "connected_account_id": "<id>", "arguments": { ... } }` and the
-`x-api-key` header (v2 is retired — 410).
+| X | `TWITTER_UPLOAD_MEDIA` → `TWITTER_CREATION_OF_A_POST` (text-only retry) | — |
+| Facebook | `FACEBOOK_CREATE_PHOTO_POST` | `COMPOSIO_FACEBOOK_PAGE_ID` (Page id) |
+| Instagram | `INSTAGRAM_POST_IG_USER_MEDIA` → `INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH` | `COMPOSIO_INSTAGRAM_IG_USER_ID` (professional account id) |
+| LinkedIn | `LINKEDIN_CREATE_LINKED_IN_POST` | `COMPOSIO_LINKEDIN_AUTHOR` (e.g. `urn:li:person:XXXX`) |
+| TikTok (optional) | `TIKTOK_POST_VIDEO` | — |
 
 Connected accounts: `COMPOSIO_CONNECTED_ACCOUNT_ID_X` /
 `..._FACEBOOK` / `..._LINKEDIN` / `..._INSTAGRAM` (nanoids from
-`GET /api/v3/connected_accounts` in the Composio dashboard/API). If a
-platform's slug or account is missing, **only that platform** is skipped and
-the failure is logged — other platforms keep posting. If an X post with media
-is rejected, the engine retries text-only automatically.
+`GET /api/v3/connected_accounts` in the Composio dashboard/API). Tool slugs are
+overridable via `COMPOSIO_ACTION_*`. If a platform's config is missing, **only
+that platform** is skipped and the failure is logged — other platforms keep
+posting. If an X post with media is rejected, the engine retries text-only
+automatically.
 
 ### Internal (Telegram Bot API)
 
 - `sendPhoto` with the campaign image + caption (caption truncated to 900
-  chars) and the app link appended; `sendMessage` fallback when there is no
-  image.
+  chars) and the app link (`APP_URL`, default `https://t.me/FitAI_Training_bot`)
+  appended; `sendMessage` fallback when there is no image.
 - Batching: **25 users/second** (`Promise.allSettled` per 25-user batch, then a
   1s pause) — safely under Telegram's ~30 messages/sec global limit.
 - Progress checkpoints are written to the campaign after every batch.
@@ -200,7 +208,7 @@ is rejected, the engine retries text-only automatically.
 
 ## 6. Cleanup
 
-- 23:00 sweep finds campaigns with `status = "completed"` and
+- 24:00 Riyadh sweep finds campaigns with `status = "completed"` and
   `completedAt <= now - 24h`.
 - For each: `ctx.storage.delete(storageId)` for the image and video, then the
   asset rows are marked `deletedAt` (unmarked rows are retried the next night).
@@ -233,15 +241,17 @@ npx convex run marketing/cleaner:cleanupOldAssets '{}' --prod
 
 | Variable | Purpose |
 | --- | --- |
-| `HF_API_TOKEN` | Hugging Face Inference API (text + image + video) |
-| `COMPOSIO_API_KEY` | Composio action execution |
+| `HF_API_TOKEN` | Hugging Face router (captions via chat completions + image via HF Inference provider) |
+| `COMPOSIO_API_KEY` | Composio v3.1 tool execution |
 | `TELEGRAM_BOT_TOKEN` | internal broadcast to app users (already used by payments) |
 | `MARKETING_ENABLED` | master switch — must be exactly `"true"` or the engine stays dormant |
-| `COMPOSIO_CONNECTED_ACCOUNT_ID_X` / `_FACEBOOK` / `_LINKEDIN` / `_INSTAGRAM` | per-platform accounts |
-| `COMPOSIO_ACTION_*` (optional) | override default action slugs |
+| `COMPOSIO_CONNECTED_ACCOUNT_ID_X` / `_FACEBOOK` / `_LINKEDIN` / `_INSTAGRAM` | per-platform connected accounts |
+| `COMPOSIO_FACEBOOK_PAGE_ID` / `COMPOSIO_INSTAGRAM_IG_USER_ID` / `COMPOSIO_LINKEDIN_AUTHOR` | account ids the posting tools need |
+| `FAL_API_KEY` (optional) | fal-ai Seedance video fallback (free key at fal.ai) |
+| `COMPOSIO_ACTION_*` (optional) | override default tool slugs |
 | `MARKETING_TEXT_MODEL` / `MARKETING_IMAGE_MODEL` / `MARKETING_VIDEO_MODEL` (optional) | model overrides |
 | `MARKETING_THEME` / `MARKETING_TOPIC` / `MARKETING_BRAND_COLOR` (optional) | defaults for the 18:00 cron run |
-| `APP_URL` (optional) | link appended to Telegram messages (default: the Vercel app) |
+| `APP_URL` (optional) | app link in every caption + Telegram messages (default: https://t.me/FitAI_Training_bot) |
 
 ```bash
 npx convex env set HF_API_TOKEN <token> --prod

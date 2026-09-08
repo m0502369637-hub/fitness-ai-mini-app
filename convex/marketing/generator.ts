@@ -30,11 +30,37 @@ import { chatCompletion, routeModel } from "../lib/models";
 //             settings) — the engine logs the failure and continues without it.
 const HF_CHAT_URL = "https://router.huggingface.co/v1/chat/completions";
 const HF_BASE = "https://router.huggingface.co/hf-inference/models";
+const FAL_BASE = "https://queue.fal.run";
 const DEFAULT_TEXT_MODEL = "meta-llama/Llama-3.1-8B-Instruct";
 const DEFAULT_IMAGE_MODEL = "stabilityai/stable-diffusion-3-medium-diffusers";
 const DEFAULT_VIDEO_MODEL = "Lightricks/LTX-Video-0.9.7-distilled";
+const DEFAULT_FAL_VIDEO_ENDPOINT = "fal-ai/bytedance/seedance/v1/pro/image-to-video";
 const DEFAULT_BRAND_COLOR = "#d7f26d"; // FitAI chartreuse
 const KNOWN_PLATFORMS = ["x", "facebook", "instagram", "linkedin"] as const;
+
+/** The app link appended to every caption (overridable via APP_URL). */
+function appLink(): string {
+  return process.env.APP_URL ?? "https://t.me/FitAI_Training_bot";
+}
+
+/**
+ * Guarantee the app link is present in a caption. X counts URLs against its
+ * character budget, so the body is trimmed there instead of overflowing.
+ */
+function ensureAppLink(platform: string, caption: string): string {
+  const link = appLink();
+  if (caption.includes(link)) return caption;
+  if (platform === "x") {
+    const suffix = `\n\n👉 ${link}`;
+    const maxBody = Math.max(0, 270 - suffix.length);
+    return caption.slice(0, maxBody) + suffix;
+  }
+  return `${caption}\n\n👉 ${link}`;
+}
+
+function finishCaption(platform: string, result: CaptionResult): CaptionResult {
+  return { caption: ensureAppLink(platform, result.caption), hashtags: result.hashtags };
+}
 
 type LogLevel = "info" | "warn" | "error";
 type CaptionResult = { caption: string; hashtags: string[] };
@@ -214,6 +240,7 @@ function textUserPrompt(platform: string, theme: string, topic: string, brandCol
     `Focus topic: ${topic}.`,
     `Brand accent color: ${brandColor} (mention it only if it fits naturally).`,
     "Mention lightly that FitAI is a free Telegram mini app.",
+    "Always end the caption with the app link: https://t.me/FitAI_Training_bot. Keep within the platform length limit.",
     'Reply with ONLY a JSON object: {"caption":"...","hashtags":["..."]}. No markdown fences.',
   ].join("\n");
 }
@@ -268,7 +295,7 @@ async function generateCaption(
     };
     const content = data.choices?.[0]?.message?.content?.trim();
     if (!content) throw new Error("HF chat returned empty content");
-    return parseCaption(content);
+    return finishCaption(platform, parseCaption(content));
   } catch (e) {
     // --- Attempt 2: DeepSeek fallback (same prompts, OpenAI-compatible API) ---
     if (process.env.MARKETING_TEXT_FALLBACK === "off") throw e;
@@ -284,7 +311,7 @@ async function generateCaption(
           { role: "system", content: TEXT_SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
         ]);
-        return parseCaption(text);
+        return finishCaption(platform, parseCaption(text));
       } catch (err) {
         lastError = err;
       }
@@ -354,25 +381,101 @@ async function generateImage(theme: string, topic: string, brandColor: string): 
 }
 
 /**
- * 3) Video: animates the freshly generated image with a current-generation
- * image-to-video model. The model takes the image itself as input (base64 data
- * URL — HF cannot download from Convex storage ids, so we never pass a
- * storageId here). Both accepted body shapes are attempted before giving up.
+ * 3) Video: animates the freshly generated image. Two attempts:
+ *    a. HF router image-to-video model (provider-dependent), then
+ *    b. fal-ai fallback — Seedance (ByteDance) image-to-video via the fal
+ *       queue API (FAL_API_KEY required; free credits on signup).
+ * The model takes the image itself as input (base64 data URL for HF, public
+ * storage URL for fal — external services can never read Convex storage ids).
  */
-async function generateVideo(image: Media): Promise<Media> {
+function videoMotionPrompt(theme: string, topic: string): string {
+  return [
+    "Slow cinematic camera push-in on the athlete, subtle dynamic movement,",
+    "dramatic rim light, professional fitness advertisement style,",
+    theme,
+    topic,
+    "no text, no watermark",
+  ].join(" ");
+}
+
+async function falGenerateVideo(imageUrl: string, theme: string, topic: string): Promise<Media> {
+  const key = process.env.FAL_API_KEY;
+  if (!key) {
+    throw new Error("FAL_API_KEY is not set (create a free key at https://fal.ai to enable the Seedance video fallback)");
+  }
+  const endpoint = process.env.FAL_VIDEO_ENDPOINT ?? DEFAULT_FAL_VIDEO_ENDPOINT;
+  const duration = process.env.FAL_VIDEO_DURATION ?? "5s";
+
+  const submit = await fetch(`${FAL_BASE}/${endpoint}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt: videoMotionPrompt(theme, topic),
+      image_url: imageUrl,
+      duration,
+    }),
+  });
+  if (!submit.ok) {
+    throw new Error(`fal submit ${submit.status}: ${(await submit.text().catch(() => "")).slice(0, 300)}`);
+  }
+  const submitted = (await submit.json()) as { request_id?: string; requestId?: string };
+  const requestId = submitted.request_id ?? submitted.requestId;
+  if (!requestId) throw new Error("fal submit returned no request id");
+
+  const deadline = Date.now() + 6 * 60 * 1000; // 6-minute budget
+  for (;;) {
+    const statusRes = await fetch(`${FAL_BASE}/${endpoint}/requests/${requestId}/status`, {
+      headers: { Authorization: `Key ${key}` },
+    });
+    if (!statusRes.ok) throw new Error(`fal status ${statusRes.status}`);
+    const st = (await statusRes.json()) as {
+      status?: string;
+      data?: { video?: { url?: string }; error?: unknown };
+    };
+    if (st.status === "COMPLETED") {
+      const videoUrl = st.data?.video?.url;
+      if (!videoUrl) throw new Error("fal completed without a video url");
+      const videoRes = await fetch(videoUrl);
+      if (!videoRes.ok) throw new Error(`fal video download ${videoRes.status}`);
+      return { bytes: await videoRes.arrayBuffer(), mime: "video/mp4" };
+    }
+    if (st.status === "FAILED") {
+      throw new Error(`fal video failed: ${String(st.data?.error ?? "unknown error")}`);
+    }
+    if (Date.now() > deadline) throw new Error("fal video generation timed out");
+    await sleep(5000);
+  }
+}
+
+async function generateVideo(
+  image: Media,
+  imageUrl: string | undefined,
+  theme: string,
+  topic: string,
+): Promise<Media> {
   const model = process.env.MARKETING_VIDEO_MODEL ?? DEFAULT_VIDEO_MODEL;
   const dataUrl = arrayBufferToDataUrl(image.mime, image.bytes);
   const bodies = [{ inputs: dataUrl }, { inputs: { image: dataUrl } }];
-  let lastError: unknown = null;
+  let hfError: unknown = null;
   for (const body of bodies) {
     try {
       const res = await hfRequest(`${HF_BASE}/${model}`, body, { timeoutMs: 300_000, maxRetries: 2 });
       return await responseToBytes(res);
     } catch (e) {
-      lastError = e;
+      hfError = e;
     }
   }
-  throw lastError instanceof Error ? lastError : new Error("Video generation failed");
+  // fal-ai Seedance fallback (uses the public image URL).
+  if (imageUrl) {
+    try {
+      return await falGenerateVideo(imageUrl, theme, topic);
+    } catch (e) {
+      throw new Error(
+        `HF video failed: ${errMsg(hfError)}; fal-ai fallback failed: ${errMsg(e)}`,
+      );
+    }
+  }
+  throw hfError instanceof Error ? hfError : new Error("Video generation failed");
 }
 
 /** Store bytes in Convex File Storage and record the asset row. */
@@ -532,10 +635,12 @@ export const generateCampaign = action({
 
     // --- Step 2: image -> Step 3: video (chained: video animates the image) --
     let image: Media | null = null;
+    let imageUrl: string | undefined;
     if (hfAvailable) {
       try {
         image = await generateImage(theme, topic, brandColor);
         const saved = await storeAsset(ctx, campaignId, "image", image.bytes, image.mime);
+        imageUrl = saved.url;
         await ctx.runMutation(internal.marketing.internals.updateCampaign, {
           campaignId,
           imageStorageId: saved.storageId,
@@ -549,7 +654,7 @@ export const generateCampaign = action({
 
       if (image) {
         try {
-          const video = await generateVideo(image);
+          const video = await generateVideo(image, imageUrl, theme, topic);
           const saved = await storeAsset(ctx, campaignId, "video", video.bytes, video.mime);
           await ctx.runMutation(internal.marketing.internals.updateCampaign, {
             campaignId,
