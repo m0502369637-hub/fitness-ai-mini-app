@@ -44,6 +44,7 @@ export const generatePlan = mutation({
       title: generated.title,
       goal,
       level,
+      durationWeeks: generated.durationWeeks,
       days: generated.days,
       createdAt: Date.now(),
     });
@@ -51,7 +52,12 @@ export const generatePlan = mutation({
     return {
       ok: true as const,
       balance: newBalance,
-      plan: { _id: planId, title: generated.title, days: generated.days },
+      plan: {
+        _id: planId,
+        title: generated.title,
+        durationWeeks: generated.durationWeeks,
+        days: generated.days,
+      },
     };
   },
 });

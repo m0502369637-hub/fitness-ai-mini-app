@@ -56,16 +56,33 @@ interface PlanView {
   _id: string
   title: string
   days: AppPlanDay[]
+  durationWeeks?: number
 }
 
 export function PlanScreen({ onBuy }: { onBuy: () => void }) {
   const { generatePlan, plans, exerciseLogs, progress, toggleExercise, profile } = useAppData()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const { impact } = useHaptic()
   const [goal, setGoal] = useState<string>(() => goalFromProfile(profile?.goal))
   const [level, setLevel] = useState<string>(() => levelFromProfile(profile?.level))
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GeneratedPlan | null>(null)
+
+  // Summary numbers: how many plans, how many exercises total and done, and the
+  // active plan's period (max two months / 8 weeks).
+  const totalExercises = plans.reduce(
+    (s, p) => s + p.days.reduce((a, d) => a + d.exercises.length, 0),
+    0,
+  )
+  const doneTotal = exerciseLogs.filter((l) => l.completed).length
+  const latest = plans[0]
+  const latestWeeks = latest?.durationWeeks ?? 8
+  const endDate = latest
+    ? new Date(latest.createdAt + latestWeeks * 7 * 86400000).toLocaleDateString(
+        lang === 'ar' ? 'ar' : undefined,
+        { month: 'short', day: 'numeric' },
+      )
+    : ''
 
   const generate = async () => {
     if (loading) return
@@ -93,12 +110,33 @@ export function PlanScreen({ onBuy }: { onBuy: () => void }) {
         <h1 className="text-2xl font-extrabold text-[var(--c-text)]">{t('plan.subtitle')}</h1>
       </div>
 
-      {/* Progress rollups */}
-      <div className="card p-3 grid grid-cols-4 gap-2">
-        <ProgressStat icon={<Flame size={16} />} label={t('plan.today')} value={progress.today} />
-        <ProgressStat icon={<CalendarDays size={16} />} label={t('plan.week')} value={progress.week} />
-        <ProgressStat icon={<CalendarRange size={16} />} label={t('plan.month')} value={progress.month} />
-        <ProgressStat icon={<Trophy size={16} />} label={t('plan.allTime')} value={progress.all} />
+      {/* Summary: plans · exercises done · period, plus time rollups */}
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 text-xs font-semibold text-[var(--c-muted)]">
+          <span>{t('plan.plansCount', { count: plans.length })}</span>
+          {latest && (
+            <span className="truncate">
+              {t('plan.period', { weeks: latestWeeks })} · {t('plan.ends', { date: endDate })}
+            </span>
+          )}
+        </div>
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-3xl font-extrabold text-[var(--c-text)] leading-none">
+              {doneTotal}
+              <span className="text-base font-bold text-[var(--c-muted)]"> / {totalExercises}</span>
+            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--c-muted)] mt-1">
+              {t('plan.exercisesDone')}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-2 pt-3" style={{ borderTop: '1px solid var(--c-border)' }}>
+          <ProgressStat icon={<Flame size={16} />} label={t('plan.today')} value={progress.today} />
+          <ProgressStat icon={<CalendarDays size={16} />} label={t('plan.week')} value={progress.week} />
+          <ProgressStat icon={<CalendarRange size={16} />} label={t('plan.month')} value={progress.month} />
+          <ProgressStat icon={<Trophy size={16} />} label={t('plan.allTime')} value={progress.all} />
+        </div>
       </div>
 
       {/* Generator */}
@@ -241,7 +279,8 @@ function PlanCard({
         <div className="flex-1 min-w-0">
           <p className="font-extrabold text-[var(--c-text)] truncate">{plan.title}</p>
           <p className="text-xs text-[var(--c-muted)]">
-            {t('plan.done', { done: completed, total })}
+            {t('plan.done', { done: completed, total })} ·{' '}
+            {t('plan.period', { weeks: plan.durationWeeks ?? 8 })}
           </p>
         </div>
         <ChevronDown

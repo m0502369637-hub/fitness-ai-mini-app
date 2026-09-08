@@ -72,11 +72,14 @@ function buildDay(title: string, group: ExerciseGroup, level: string): PlanDay {
 export function generateMockPlan(
   goal: string,
   level: string,
-): { title: string; days: PlanDay[] } {
+): { title: string; durationWeeks: number; days: PlanDay[] } {
   const g = goal.toLowerCase();
 
   let days: PlanDay[];
+  // Each program runs for at most 8 weeks (two months).
+  let durationWeeks = 4;
   if (g.includes("muscle") || g.includes("gain") || g.includes("strong")) {
+    durationWeeks = 8;
     days = [
       buildDay("Monday — Push", "push", level),
       buildDay("Wednesday — Pull", "pull", level),
@@ -84,6 +87,7 @@ export function generateMockPlan(
       buildDay("Saturday — Core", "core", level),
     ];
   } else if (g.includes("lose") || g.includes("fat") || g.includes("weight")) {
+    durationWeeks = 8;
     days = [
       buildDay("Monday — Conditioning", "cardio", level),
       buildDay("Tuesday — Legs", "legs", level),
@@ -91,6 +95,7 @@ export function generateMockPlan(
       buildDay("Friday — Cardio", "cardio", level),
     ];
   } else if (g.includes("endurance") || g.includes("cardio") || g.includes("run")) {
+    durationWeeks = 6;
     days = [
       buildDay("Monday — Intervals", "cardio", level),
       buildDay("Wednesday — Strength", "legs", level),
@@ -98,6 +103,7 @@ export function generateMockPlan(
       buildDay("Saturday — Core", "core", level),
     ];
   } else {
+    durationWeeks = 4;
     days = [
       buildDay("Monday — Lower Body", "legs", level),
       buildDay("Wednesday — Push", "push", level),
@@ -107,7 +113,7 @@ export function generateMockPlan(
   }
 
   const title = `${toTitle(goal || "General Fitness")} Plan (${toTitle(level || "Intermediate")})`;
-  return { title, days };
+  return { title, durationWeeks, days };
 }
 
 function toTitle(s: string): string {

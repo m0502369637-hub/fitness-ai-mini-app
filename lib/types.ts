@@ -93,6 +93,7 @@ export interface AppPlan {
   title: string;
   goal?: string;
   level?: string;
+  durationWeeks?: number;
   days: AppPlanDay[];
   createdAt: number;
 }
@@ -100,6 +101,7 @@ export interface AppPlan {
 export interface GeneratedPlan {
   _id: string;
   title: string;
+  durationWeeks?: number;
   days: AppPlanDay[];
 }
 

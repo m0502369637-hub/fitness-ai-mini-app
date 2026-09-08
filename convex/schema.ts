@@ -69,6 +69,7 @@ export default defineSchema({
     title: v.string(),
     goal: v.optional(v.string()),
     level: v.optional(v.string()),
+    durationWeeks: v.optional(v.number()), // program length, max 8 weeks (two months)
     days: v.array(
       v.object({
         day: v.string(),

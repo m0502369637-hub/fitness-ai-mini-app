@@ -217,6 +217,7 @@ export function DemoAppDataProvider({ children }: { children: React.ReactNode })
                 title: g.title,
                 goal,
                 level,
+                durationWeeks: g.durationWeeks,
                 days: g.days,
                 createdAt: Date.now(),
             }
