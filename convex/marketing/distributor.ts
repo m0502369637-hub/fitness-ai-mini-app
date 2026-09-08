@@ -118,7 +118,14 @@ async function runComposioTool(
   const res = await fetch(`${COMPOSIO_BASE}${COMPOSIO_EXECUTE_PATH}${encodeURIComponent(toolSlug)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-    body: JSON.stringify({ connected_account_id: connectedAccountId, arguments: input }),
+    body: JSON.stringify({
+      connected_account_id: connectedAccountId,
+      // The user_id the connection was created under (Composio requires it for
+      // PRIVATE connections); entity_id is the legacy name some toolkits want.
+      user_id: process.env.COMPOSIO_USER_ID ?? "fitai-marketing",
+      entity_id: process.env.COMPOSIO_USER_ID ?? "fitai-marketing",
+      arguments: input,
+    }),
   });
   if (!res.ok) {
     throw new Error(`Composio ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
@@ -197,10 +204,20 @@ async function postToInstagram(campaign: Doc<"marketingCampaigns">): Promise<unk
     ig_user_id: igUserId,
     caption: captionFor(campaign, "instagram"),
   };
-  if (campaign.imageUrl) containerInput.image_url = campaign.imageUrl;
-  if (campaign.videoUrl) containerInput.video_url = campaign.videoUrl;
+  // Instagram requires exactly one media source: prefer the Seedance video
+  // (Reel) when available, otherwise the still image.
+  if (campaign.videoUrl) {
+    containerInput.video_url = campaign.videoUrl;
+    containerInput.media_type = "REELS";
+  } else if (campaign.imageUrl) {
+    containerInput.image_url = campaign.imageUrl;
+  }
   const containerRes = await runComposioTool("instagram", containerSlug, containerInput);
-  const creationId = extractString(containerRes, "creation_id", "id");
+  const containerData = (containerRes as { data?: unknown; error?: unknown; successful?: boolean }) ?? {};
+  if (containerData.error) {
+    throw new Error(`Instagram container error: ${String(containerData.error).slice(0, 250)}`);
+  }
+  const creationId = extractString(containerRes, "creation_id", "creationId", "id");
   if (!creationId) throw new Error("Instagram container returned no creation id");
   return await runComposioTool("instagram", publishSlug, { ig_user_id: igUserId, creation_id: creationId });
 }
@@ -225,6 +242,136 @@ async function postGeneric(platform: string, campaign: Doc<"marketingCampaigns">
   const slug = getToolSlug(platform);
   if (!slug) throw new Error(`No Composio tool configured for "${platform}" (set ${actionEnvKey(platform)})`);
   return await runComposioTool(platform, slug, { text: captionFor(campaign, platform) });
+}
+
+// ---------------------------------------------------------------------------
+// Direct X API (OAuth 1.0a) — fallback when Composio's X flow is unavailable
+// ---------------------------------------------------------------------------
+
+function pctEncode(value: string): string {
+  return encodeURIComponent(value)
+    .replace(/!/g, "%21")
+    .replace(/'/g, "%27")
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29")
+    .replace(/\*/g, "%2A");
+}
+
+function randomNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Build an OAuth 1.0a Authorization header for the X API (HMAC-SHA1). */
+async function oauth1Header(
+  method: string,
+  url: string,
+  bodyParams: Record<string, string>,
+): Promise<string> {
+  const consumerKey = process.env.X_OAUTH1_CONSUMER_KEY;
+  const consumerSecret = process.env.X_OAUTH1_CONSUMER_SECRET ?? "";
+  const accessToken = process.env.X_OAUTH1_ACCESS_TOKEN;
+  const accessSecret = process.env.X_OAUTH1_ACCESS_SECRET ?? "";
+  if (!consumerKey || !accessToken) {
+    throw new Error("X_OAUTH1_CONSUMER_KEY / X_OAUTH1_ACCESS_TOKEN are not set for direct X posting");
+  }
+  const oauth: Record<string, string> = {
+    oauth_consumer_key: consumerKey,
+    oauth_nonce: randomNonce(),
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp: String(Math.floor(Date.now() / 1000)),
+    oauth_token: accessToken,
+    oauth_version: "1.0",
+  };
+  const signatureParams = { ...bodyParams, ...oauth };
+  const baseString = [
+    method.toUpperCase(),
+    pctEncode(url),
+    pctEncode(
+      Object.keys(signatureParams)
+        .sort()
+        .map((k) => `${pctEncode(k)}=${pctEncode(signatureParams[k])}`)
+        .join("&"),
+    ),
+  ].join("&");
+  const signingKey = `${pctEncode(consumerSecret)}&${pctEncode(accessSecret)}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(signingKey),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const signatureBytes = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(baseString),
+  );
+  const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
+  oauth.oauth_signature = signature;
+  return (
+    "OAuth " +
+    Object.keys(oauth)
+      .sort()
+      .map((k) => `${k}="${pctEncode(oauth[k])}"`)
+      .join(", ")
+  );
+}
+
+/** Upload the campaign image to X and post the caption with media attached. */
+async function postToXDirect(campaign: Doc<"marketingCampaigns">): Promise<unknown> {
+  const caption = captionFor(campaign, "x");
+  let mediaId: string | null = null;
+
+  if (campaign.imageUrl) {
+    const imgRes = await fetch(campaign.imageUrl);
+    if (imgRes.ok) {
+      const bytes = new Uint8Array(await imgRes.arrayBuffer());
+      const boundary = `----fitai${randomNonce()}`;
+      const head = `--${boundary}\r\nContent-Disposition: form-data; name="media"; filename="campaign.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+      const tail = `\r\n--${boundary}--\r\n`;
+      const body = new Uint8Array(head.length + bytes.length + tail.length);
+      const enc = new TextEncoder();
+      body.set(enc.encode(head), 0);
+      body.set(bytes, head.length);
+      body.set(enc.encode(tail), head.length + bytes.length);
+      const url = "https://upload.twitter.com/1.1/media/upload.json";
+      const auth = await oauth1Header("POST", url, {});
+      const upRes = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: auth,
+          "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        },
+        body: body.buffer as ArrayBuffer,
+      });
+      if (upRes.ok) {
+        const data = (await upRes.json()) as { media_id_string?: string; media_id?: number };
+        mediaId = data.media_id_string ?? (data.media_id !== undefined ? String(data.media_id) : null);
+      }
+    }
+  }
+
+  const url = "https://api.twitter.com/1.1/statuses/update.json";
+  const bodyParams: Record<string, string> = { status: caption };
+  if (mediaId) bodyParams.media_ids = mediaId;
+  const auth = await oauth1Header("POST", url, bodyParams);
+  const bodyStr = Object.keys(bodyParams)
+    .map((k) => `${pctEncode(k)}=${pctEncode(bodyParams[k])}`)
+    .join("&");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: auth,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: bodyStr,
+  });
+  if (!res.ok) {
+    throw new Error(`X direct ${res.status}: ${(await res.text().catch(() => "")).slice(0, 250)}`);
+  }
+  return await res.json();
 }
 
 async function postToPlatform(platform: string, campaign: Doc<"marketingCampaigns">): Promise<unknown> {
@@ -287,7 +434,12 @@ async function sendToUser(
 // ---------------------------------------------------------------------------
 
 export const runDistribution = action({
-  args: { campaignId: v.optional(v.id("marketingCampaigns")) },
+  args: {
+    campaignId: v.optional(v.id("marketingCampaigns")),
+    // Re-post a campaign that already finished (e.g. retry failed channels
+    // without regenerating the assets).
+    force: v.optional(v.boolean()),
+  },
   handler: async (ctx, args): Promise<DistributionResult> => {
     if (process.env.MARKETING_ENABLED !== "true") {
       return { ok: false, reason: "MARKETING_DISABLED" };
@@ -298,7 +450,7 @@ export const runDistribution = action({
       : await ctx.runQuery(internal.marketing.internals.getLatestReadyCampaign, {});
     if (!campaign) return { ok: false, reason: "NO_READY_CAMPAIGN" };
     if (campaign.status === "distributing") return { ok: false, reason: "ALREADY_DISTRIBUTING" };
-    if (campaign.status === "completed") {
+    if (campaign.status === "completed" && !args.force) {
       return {
         ok: true,
         campaignId: campaign._id,
@@ -323,11 +475,21 @@ export const runDistribution = action({
       }
     } else {
       for (const platform of campaign.platforms) {
+        // Force re-runs skip channels that already succeeded (no duplicate posts).
+        const existing = await ctx.runQuery(internal.marketing.internals.getDistribution, {
+          campaignId,
+          platform,
+        });
+        if (existing?.status === "sent") {
+          results[platform] = { status: "sent" };
+          await log("info", `distributor.${platform}`, "Already posted — skipped on force re-run");
+          continue;
+        }
         try {
           await postToPlatform(platform, campaign);
           results[platform] = { status: "sent" };
         } catch (e) {
-          // X fallback: when the media tweet fails, retry text-only.
+          // X fallbacks: text-only via Composio, then the direct X API (OAuth 1.0a).
           if (platform === "x" && campaign.imageUrl) {
             try {
               const postSlug = getToolSlug("x");
@@ -335,6 +497,20 @@ export const runDistribution = action({
               await runComposioTool("x", postSlug, { text: captionFor(campaign, "x") });
               results[platform] = { status: "sent" };
               await log("warn", "distributor.x", "Media tweet failed — posted text-only fallback");
+            } catch (e2) {
+              try {
+                await postToXDirect(campaign);
+                results[platform] = { status: "sent" };
+                await log("warn", "distributor.x", "Composio X failed — posted via the direct X API");
+              } catch (e3) {
+                results[platform] = { status: "failed", error: errMsg(e3) };
+              }
+            }
+          } else if (platform === "x") {
+            try {
+              await postToXDirect(campaign);
+              results[platform] = { status: "sent" };
+              await log("warn", "distributor.x", "Composio X failed — posted via the direct X API");
             } catch (e2) {
               results[platform] = { status: "failed", error: errMsg(e2) };
             }
@@ -357,8 +533,20 @@ export const runDistribution = action({
 
     // ---- 2) Internal broadcast to all users (Telegram, 25 users/sec) --------
     let telegram: TelegramStats;
+    const telegramExisting = await ctx.runQuery(internal.marketing.internals.getDistribution, {
+      campaignId,
+      platform: "telegram",
+    });
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
+    if (telegramExisting?.status === "sent") {
+      await log("info", "distributor.telegram", "Already broadcast — skipped on force re-run");
+      telegram = {
+        status: "sent",
+        total: campaign.distribution.totalUsers,
+        sent: campaign.distribution.sentUsers,
+        failed: campaign.distribution.failedUsers,
+      };
+    } else if (!botToken) {
       await log("warn", "distributor.telegram", "TELEGRAM_BOT_TOKEN not set — user broadcast skipped");
       telegram = { status: "skipped", error: "TELEGRAM_BOT_TOKEN not set", total: 0, sent: 0, failed: 0 };
     } else {

@@ -58,8 +58,35 @@ function ensureAppLink(platform: string, caption: string): string {
   return `${caption}\n\n👉 ${link}`;
 }
 
+/**
+ * Strip unpaired UTF-16 surrogates (occasionally emitted by LLMs). Convex's
+ * JSON codec rejects lone surrogates, so sanitize before any DB write.
+ */
+function sanitizeText(value: string): string {
+  let out = "";
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        out += value[i] + value[i + 1];
+        i++;
+      }
+      // else: lone high surrogate — dropped
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      // lone low surrogate — dropped
+    } else {
+      out += value[i];
+    }
+  }
+  return out;
+}
+
 function finishCaption(platform: string, result: CaptionResult): CaptionResult {
-  return { caption: ensureAppLink(platform, result.caption), hashtags: result.hashtags };
+  return {
+    caption: sanitizeText(ensureAppLink(platform, result.caption)),
+    hashtags: result.hashtags.map(sanitizeText),
+  };
 }
 
 type LogLevel = "info" | "warn" | "error";
@@ -353,14 +380,18 @@ function parseCaption(raw: string): CaptionResult {
           .filter(Boolean);
         if (caption) return { caption, hashtags };
       }
-      // Truncated JSON: the model hit its token budget mid-string
-      // ({"caption":"Partial text… without a closing quote). Recover the text.
-      const truncated = cleaned.match(/^\s*\{\s*"caption"\s*:\s*"([\s\S]*)$/);
-      if (truncated) {
-        const partial = truncated[1].replace(/[",}\s]+$/, "").trim();
-        if (partial) return { caption: partial, hashtags: [] };
-      }
     }
+  }
+  // Truncated JSON — the model hit its token budget mid-string, possibly with
+  // NO closing brace at all ({"caption":"Partial text…). Recover the text and
+  // cut any trailing hashtags stub.
+  const truncated = cleaned.match(/^\s*\{\s*"caption"\s*:\s*"([\s\S]*)$/);
+  if (truncated) {
+    let partial = truncated[1];
+    const cut = partial.search(/(\\?"\s*,?\s*\\?"hashtags\s*\\?"|\\?"hashtags\s*\\?"\s*:)/);
+    if (cut !== -1) partial = partial.slice(0, cut);
+    partial = partial.replace(/[",}\s]+$/, "").trim();
+    if (partial) return { caption: partial, hashtags: [] };
   }
   const hashtags = [...cleaned.matchAll(/#[\p{L}\p{N}_]+/gu)].map((m) => m[0].replace(/^#/, ""));
   return { caption: cleaned, hashtags };

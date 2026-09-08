@@ -218,6 +218,18 @@ export const upsertDistribution = internalMutation({
   },
 });
 
+/** Read one per-platform distribution result row (used to skip already-sent channels). */
+export const getDistribution = internalQuery({
+  args: { campaignId: v.id("marketingCampaigns"), platform: v.string() },
+  handler: async (ctx, { campaignId, platform }) => {
+    return await ctx.db
+      .query("marketingDistributions")
+      .withIndex("by_campaignId", (q) => q.eq("campaignId", campaignId))
+      .filter((q) => q.eq(q.field("platform"), platform))
+      .first();
+  },
+});
+
 /**
  * Campaigns whose stored files are eligible for deletion:
  *  - "completed" campaigns older than 24h after completion (the spec), plus
