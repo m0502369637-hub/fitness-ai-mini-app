@@ -404,7 +404,8 @@ async function falGenerateVideo(imageUrl: string, theme: string, topic: string):
     throw new Error("FAL_API_KEY is not set (create a free key at https://fal.ai to enable the Seedance video fallback)");
   }
   const endpoint = process.env.FAL_VIDEO_ENDPOINT ?? DEFAULT_FAL_VIDEO_ENDPOINT;
-  const duration = process.env.FAL_VIDEO_DURATION ?? "5s";
+  // Seedance takes a duration in whole seconds (2-12).
+  const duration = Number(process.env.FAL_VIDEO_DURATION ?? "5");
 
   const submit = await fetch(`${FAL_BASE}/${endpoint}`, {
     method: "POST",
@@ -418,29 +419,56 @@ async function falGenerateVideo(imageUrl: string, theme: string, topic: string):
   if (!submit.ok) {
     throw new Error(`fal submit ${submit.status}: ${(await submit.text().catch(() => "")).slice(0, 300)}`);
   }
-  const submitted = (await submit.json()) as { request_id?: string; requestId?: string };
+  const submitted = (await submit.json()) as {
+    request_id?: string;
+    requestId?: string;
+    status_url?: string;
+    response_url?: string;
+  };
+  // Prefer the polling URLs returned by fal — some endpoints use a different
+  // queue root than the endpoint slug (e.g. Seedance's fal-ai/bytedance root).
   const requestId = submitted.request_id ?? submitted.requestId;
-  if (!requestId) throw new Error("fal submit returned no request id");
+  const statusUrl =
+    submitted.status_url ??
+    (requestId ? `${FAL_BASE}/${endpoint}/requests/${requestId}/status` : undefined);
+  const resultUrl =
+    submitted.response_url ??
+    (requestId ? `${FAL_BASE}/${endpoint}/requests/${requestId}` : undefined);
+  if (!statusUrl || !resultUrl) throw new Error("fal submit returned no polling urls");
 
   const deadline = Date.now() + 6 * 60 * 1000; // 6-minute budget
   for (;;) {
-    const statusRes = await fetch(`${FAL_BASE}/${endpoint}/requests/${requestId}/status`, {
+    const statusRes = await fetch(statusUrl, {
       headers: { Authorization: `Key ${key}` },
     });
     if (!statusRes.ok) throw new Error(`fal status ${statusRes.status}`);
-    const st = (await statusRes.json()) as {
-      status?: string;
-      data?: { video?: { url?: string }; error?: unknown };
-    };
+    const st = (await statusRes.json()) as { status?: string };
     if (st.status === "COMPLETED") {
-      const videoUrl = st.data?.video?.url;
+      const resultRes = await fetch(resultUrl, { headers: { Authorization: `Key ${key}` } });
+      if (!resultRes.ok) throw new Error(`fal result ${resultRes.status}`);
+      const result = (await resultRes.json()) as {
+        data?: { video?: { url?: string }; videos?: Array<{ url?: string }> };
+        video?: { url?: string };
+        videos?: Array<{ url?: string }>;
+        detail?: unknown;
+      };
+      if (result.detail) {
+        throw new Error(`fal rejected input: ${JSON.stringify(result.detail).slice(0, 300)}`);
+      }
+      // Seedance returns the video at the top level; other endpoints nest it
+      // under `data` — accept every known shape.
+      const videoUrl =
+        result.video?.url ??
+        result.data?.video?.url ??
+        result.videos?.[0]?.url ??
+        result.data?.videos?.[0]?.url;
       if (!videoUrl) throw new Error("fal completed without a video url");
       const videoRes = await fetch(videoUrl);
       if (!videoRes.ok) throw new Error(`fal video download ${videoRes.status}`);
       return { bytes: await videoRes.arrayBuffer(), mime: "video/mp4" };
     }
     if (st.status === "FAILED") {
-      throw new Error(`fal video failed: ${String(st.data?.error ?? "unknown error")}`);
+      throw new Error("fal video generation failed");
     }
     if (Date.now() > deadline) throw new Error("fal video generation timed out");
     await sleep(5000);
