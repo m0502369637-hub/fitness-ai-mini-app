@@ -15,17 +15,24 @@
 // this module free of self-referential `internal.*` imports.
 
 import { v } from "convex/values";
-import { action, ActionCtx } from "../_generated/server";
+import { action, ActionCtx, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { arrayBufferToDataUrl } from "../lib/models";
+import { chatCompletion, routeModel } from "../lib/models";
 
-const HF_BASE = "https://api-inference.huggingface.co/models";
-const DEFAULT_TEXT_MODEL = "meta-llama/Llama-3-8B-Instruct";
-const DEFAULT_IMAGE_MODEL = "black-forest-labs/FLUX.1-schnell";
-const DEFAULT_VIDEO_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt";
+// HF retired the legacy api-inference.huggingface.co serverless API (late 2025).
+// All HF inference now goes through the router (https://router.huggingface.co)
+// with provider-pinned or auto-routed models. The default ids below are the
+// current Inference-Provider-era catalog; the original spec models
+// (meta-llama/Llama-3-8B-Instruct, FLUX.1-schnell, SVD-img2vid-xt) are retired
+// upstream and remain overridable via env.
+const HF_BASE = "https://router.huggingface.co/hf-inference/models";
+const DEFAULT_TEXT_MODEL = "meta-llama/Llama-3.1-8B-Instruct";
+const DEFAULT_IMAGE_MODEL = "Qwen/Qwen-Image";
+const DEFAULT_VIDEO_MODEL = "Lightricks/LTX-Video-0.9.7-distilled";
 const DEFAULT_BRAND_COLOR = "#d7f26d"; // FitAI chartreuse
-const KNOWN_PLATFORMS = ["x", "linkedin", "instagram", "tiktok"] as const;
+const KNOWN_PLATFORMS = ["x", "facebook", "instagram", "linkedin"] as const;
 
 type LogLevel = "info" | "warn" | "error";
 type CaptionResult = { caption: string; hashtags: string[] };
@@ -57,10 +64,10 @@ function hfToken(): string {
 }
 
 /**
- * POST to the HF Inference API with cold-start / rate-limit resilience:
- * `x-wait-for-model: true` makes HF hold the request while the model loads,
- * and 429/503/5xx responses (plus timeouts and network hiccups) are retried
- * with exponential backoff.
+ * POST to the HF Router (provider-aware inference) with cold-start / rate-limit
+ * resilience: `x-wait-for-model: true` makes HF hold the request while the model
+ * loads, and 429/503/5xx responses (plus timeouts and network hiccups) are
+ * retried with exponential backoff.
  */
 async function hfRequest(
   model: string,
@@ -182,11 +189,14 @@ const TEXT_SYSTEM_PROMPT = [
   "You are a senior social media copywriter for FitAI, a free fitness mini app on Telegram.",
   "Brand voice: energetic, bold, zero fluff, motivating but never preachy.",
   "You write platform-native copy, not generic text.",
+  "Do not think out loud and do not include reasoning — output the JSON immediately.",
   "Reply with strict JSON only: {\"caption\":\"...\",\"hashtags\":[\"...\"]}.",
 ].join(" ");
 
 const PLATFORM_TEXT_INSTRUCTIONS: Record<string, string> = {
   x: "Platform: X (Twitter). Write one viral post, maximum 250 characters. Start with a scroll-stopping hook. 2-3 hashtags only.",
+  facebook:
+    "Platform: Facebook. Write one engaging post of 100-150 words with a conversational tone. End with one clear question that sparks comments and one soft call-to-action. 3-5 hashtags.",
   linkedin:
     "Platform: LinkedIn. Write one professional post of 800-1100 characters. Story-driven opening line, then three short value bullets, one soft call-to-action. 3 hashtags.",
   instagram:
@@ -222,7 +232,11 @@ function imagePrompt(theme: string, topic: string, brandColor: string): string {
 // Generation steps
 // ---------------------------------------------------------------------------
 
-/** 1) Text: one caption per platform via Llama-3-8B-Instruct. */
+/**
+ * 1) Text: one caption per platform via the HF Router; on any HF failure
+ * (missing permission, provider catalog gap, network) the step falls back to
+ * the app's DeepSeek model so caption generation keeps working.
+ */
 async function generateCaption(
   platform: string,
   theme: string,
@@ -230,43 +244,67 @@ async function generateCaption(
   brandColor: string,
 ): Promise<CaptionResult> {
   const model = process.env.MARKETING_TEXT_MODEL ?? DEFAULT_TEXT_MODEL;
-  // Llama-3-8B-Instruct expects the raw chat template on the text-generation endpoint.
-  const inputs = [
-    "<|begin_of_text|><|start_header_id|>system<|end_header_id|>",
-    "",
-    TEXT_SYSTEM_PROMPT,
-    "<|eot_id|><|start_header_id|>user<|end_header_id|>",
-    "",
-    textUserPrompt(platform, theme, topic, brandColor),
-    "<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
-    "",
-  ].join("\n");
+  const userPrompt = textUserPrompt(platform, theme, topic, brandColor);
 
-  const res = await hfRequest(
-    model,
-    {
-      inputs,
-      parameters: { max_new_tokens: 220, temperature: 0.85, do_sample: true, return_full_text: false },
-    },
-    { timeoutMs: 60_000 },
-  );
-  const json = (await res.json()) as unknown;
-  let raw = "";
-  if (Array.isArray(json)) {
-    const first = json[0] as { generated_text?: string } | undefined;
-    raw = first?.generated_text ?? "";
-  } else if (json && typeof json === "object") {
-    const obj = json as { error?: unknown; generated_text?: unknown };
-    if (typeof obj.error === "string" && obj.error.length > 0) {
-      throw new Error(`HF text model: ${obj.error}`);
+  // --- Attempt 1: Hugging Face (Llama-3 chat template on the router) ---
+  try {
+    const inputs = [
+      "<|begin_of_text|><|start_header_id|>system<|end_header_id|>",
+      "",
+      TEXT_SYSTEM_PROMPT,
+      "<|eot_id|><|start_header_id|>user<|end_header_id|>",
+      "",
+      userPrompt,
+      "<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
+      "",
+    ].join("\n");
+    const res = await hfRequest(
+      model,
+      {
+        inputs,
+        parameters: { max_new_tokens: 220, temperature: 0.85, do_sample: true, return_full_text: false },
+      },
+      { timeoutMs: 60_000, maxRetries: 2 },
+    );
+    const json = (await res.json()) as unknown;
+    let raw = "";
+    if (Array.isArray(json)) {
+      const first = json[0] as { generated_text?: string } | undefined;
+      raw = first?.generated_text ?? "";
+    } else if (json && typeof json === "object") {
+      const obj = json as { error?: unknown; generated_text?: unknown };
+      if (typeof obj.error === "string" && obj.error.length > 0) {
+        throw new Error(`HF text model: ${obj.error}`);
+      }
+      raw = typeof obj.generated_text === "string" ? obj.generated_text : "";
     }
-    raw = typeof obj.generated_text === "string" ? obj.generated_text : "";
+    if (!raw.trim()) throw new Error("HF text model returned empty output");
+    return parseCaption(raw);
+  } catch (e) {
+    // --- Attempt 2: DeepSeek fallback (same prompts, OpenAI-compatible API) ---
+    if (process.env.MARKETING_TEXT_FALLBACK === "off") throw e;
+    const fallback = routeModel({ vision: false });
+    if (!fallback) throw e;
+    // The DeepSeek text model is a reasoning model: give it a generous token
+    // budget so reasoning never starves the caption content.
+    const cfg = { ...fallback, maxTokens: 4000, temperature: 0.7 };
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const text = await chatCompletion(cfg, [
+          { role: "system", content: TEXT_SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ]);
+        return parseCaption(text);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("DeepSeek fallback failed");
   }
-  if (!raw.trim()) throw new Error("HF text model returned empty output");
-  return parseCaption(raw);
 }
 
-/** Parse the model's reply: prefer JSON, fall back to the raw text + hashtag scan. */
+/** Parse the model's reply: prefer JSON, fall back to regex extraction, then raw text. */
 function parseCaption(raw: string): CaptionResult {
   const cleaned = raw.replace(/```(?:json)?/g, "").trim();
   const start = cleaned.indexOf("{");
@@ -285,30 +323,49 @@ function parseCaption(raw: string): CaptionResult {
         : [];
       if (caption) return { caption, hashtags };
     } catch {
-      // fall through to the raw-text path
+      // Invalid JSON (e.g. literal newlines inside strings) — extract fields directly.
+      const captionMatch = cleaned.match(/"caption"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (captionMatch) {
+        let caption = "";
+        try {
+          caption = (JSON.parse(`"${captionMatch[1]}"`) as string).trim();
+        } catch {
+          caption = captionMatch[1].trim();
+        }
+        const hashtags = [...cleaned.matchAll(/"hashtags"\s*:\s*\[([\s\S]*?)\]/g)]
+          .flatMap((m) => [...m[1].matchAll(/"([^"]+)"/g)].map((t) => t[1].replace(/^#/, "").trim()))
+          .filter(Boolean);
+        if (caption) return { caption, hashtags };
+      }
+      // Truncated JSON: the model hit its token budget mid-string
+      // ({"caption":"Partial text… without a closing quote). Recover the text.
+      const truncated = cleaned.match(/^\s*\{\s*"caption"\s*:\s*"([\s\S]*)$/);
+      if (truncated) {
+        const partial = truncated[1].replace(/[",}\s]+$/, "").trim();
+        if (partial) return { caption: partial, hashtags: [] };
+      }
     }
   }
   const hashtags = [...cleaned.matchAll(/#[\p{L}\p{N}_]+/gu)].map((m) => m[0].replace(/^#/, ""));
   return { caption: cleaned, hashtags };
 }
 
-/** 2) Image: FLUX.1-schnell text-to-image (the current benchmark). */
+/** 2) Image: current-generation HF provider text-to-image model. */
 async function generateImage(theme: string, topic: string, brandColor: string): Promise<Media> {
   const model = process.env.MARKETING_IMAGE_MODEL ?? DEFAULT_IMAGE_MODEL;
   const res = await hfRequest(
     model,
     { inputs: imagePrompt(theme, topic, brandColor) },
-    { timeoutMs: 180_000, maxRetries: 5 },
+    { timeoutMs: 180_000, maxRetries: 3 },
   );
   return await responseToBytes(res);
 }
 
 /**
- * 3) Video: stable-video-diffusion-img2vid-xt animates the freshly generated
- * image. The model takes the image itself as input (base64 data URL — HF
- * cannot download from Convex storage ids, so we never pass a storageId here).
- * Some HF deployments expect `{inputs: dataUrl}`, others `{inputs: {image: dataUrl}}`
- * — we try both shapes before giving up.
+ * 3) Video: animates the freshly generated image with a current-generation
+ * image-to-video model. The model takes the image itself as input (base64 data
+ * URL — HF cannot download from Convex storage ids, so we never pass a
+ * storageId here). Both accepted body shapes are attempted before giving up.
  */
 async function generateVideo(image: Media): Promise<Media> {
   const model = process.env.MARKETING_VIDEO_MODEL ?? DEFAULT_VIDEO_MODEL;
@@ -341,8 +398,83 @@ async function storeAsset(
 }
 
 // ---------------------------------------------------------------------------
-// Public action — the scheduled 08:00 entrypoint
+// Public action — the scheduled 18:00 Riyadh (15:00 UTC) entrypoint
 // ---------------------------------------------------------------------------
+
+/** Health check: probes the HF hosts reachable from the Convex runtime. */
+export const pingHf = action({
+  args: {},
+  handler: async () => {
+    const probe = async (label: string, url: string, init: RequestInit) => {
+      try {
+        const res = await fetch(url, init);
+        const ct = res.headers.get("content-type") ?? "";
+        const body = (await res.text().catch(() => "")).slice(0, 200);
+        return { label, ok: res.ok, status: res.status, contentType: ct, body };
+      } catch (e) {
+        return {
+          label,
+          ok: false,
+          error: String(e),
+          errorName: e instanceof Error ? e.name : null,
+          errorCtor: e instanceof Error ? e.constructor?.name : typeof e,
+        };
+      }
+    };
+    const token = process.env.HF_API_TOKEN ?? process.env.HF_TOKEN ?? "";
+    const auth = { Authorization: `Bearer ${token}` };
+    const results = await Promise.all([
+      probe("whoami", "https://huggingface.co/api/whoami-v2", { method: "GET", headers: auth }),
+      probe(
+        "router-textgen",
+        "https://router.huggingface.co/hf-inference/models/meta-llama/Llama-3-8B-Instruct",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...auth },
+          body: JSON.stringify({
+            inputs: "Reply with exactly one word: hello",
+            parameters: { max_new_tokens: 4, return_full_text: false },
+          }),
+        },
+      ),
+      probe(
+        "router-chat-completions",
+        "https://router.huggingface.co/hf-inference/v1/chat/completions",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...auth },
+          body: JSON.stringify({
+            model: "meta-llama/Llama-3-8B-Instruct",
+            messages: [{ role: "user", content: "Reply with exactly one word: hello" }],
+            max_tokens: 4,
+          }),
+        },
+      ),
+    ]);
+    return { results };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Public queries (dashboard/CLI inspection)
+// ---------------------------------------------------------------------------
+
+/** Latest campaigns, newest first (status, media URLs, captions, errors). */
+export const listCampaigns = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const take = Math.min(args.limit ?? 10, 50);
+    return await ctx.db.query("marketingCampaigns").order("desc").take(take);
+  },
+});
+
+/** One campaign by id (full document). */
+export const getCampaign = query({
+  args: { campaignId: v.id("marketingCampaigns") },
+  handler: async (ctx, { campaignId }) => {
+    return await ctx.db.get(campaignId);
+  },
+});
 
 export const generateCampaign = action({
   args: {

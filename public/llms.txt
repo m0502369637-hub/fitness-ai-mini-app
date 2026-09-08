@@ -12,7 +12,7 @@
 - Body photo analysis: users upload photos; a DeepSeek vision model analyzes posture/form against the profile and suggests plan corrections.
 - Points economy: 250 free welcome points; AI coach answers cost 50 pts, workout plans cost 250 pts (the welcome bonus covers the first plan), plan-edit proposals cost 50 pts; Telegram Stars top-ups (500 pts / 50 ⭐ and 1000 pts / 100 ⭐) with pre-checkout validation and refund support.
 - Localization: English and Arabic dictionaries, RTL layout for Arabic, localized exercise names and instructions.
-- Marketing Engine (autonomous): daily cron pipeline that generates multi-modal campaigns (Llama-3 captions, FLUX.1-schnell image, stable-video-diffusion video via Hugging Face), posts them through Composio to X/LinkedIn/Instagram/TikTok, broadcasts to all app users via the Telegram Bot API (25 msg/sec batching), and deletes stored assets 24h after completion. Dormant until MARKETING_ENABLED=true; full prompts documented in convex/marketing/PROMPTS.md.
+- Marketing Engine (autonomous): daily cron pipeline (18:00/19:00/24:00 Riyadh) that generates multi-modal campaigns (Llama-3 captions, FLUX.1-schnell image, stable-video-diffusion video via Hugging Face), posts them through Composio (API v3) to X/Facebook/Instagram/LinkedIn, broadcasts to all app users via the Telegram Bot API (25 msg/sec batching), and deletes stored assets 24h after completion. Dormant until MARKETING_ENABLED=true; full prompts documented in convex/marketing/PROMPTS.md.
 
 ## Technology
 

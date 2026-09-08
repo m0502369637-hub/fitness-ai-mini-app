@@ -26,6 +26,7 @@ const TELEGRAM_CAPTION_LIMIT = 900; // sendPhoto caption hard limit is 1024
 
 const DEFAULT_ACTIONS: Record<string, string> = {
   x: "TWITTER_CREATE_TWEET",
+  facebook: "FACEBOOK_CREATE_POST",
   linkedin: "LINKEDIN_CREATE_LINKED_IN_POST",
   instagram: "INSTAGRAM_MEDIA_CREATE",
   tiktok: "TIKTOK_POST_VIDEO",
@@ -84,6 +85,8 @@ function buildExternalInput(platform: string, campaign: Doc<"marketingCampaigns"
   switch (platform) {
     case "x":
       return { text: caption, media };
+    case "facebook":
+      return { message: caption, media };
     case "linkedin":
       return { text: caption, mediaUrls: media };
     case "instagram":
@@ -95,7 +98,11 @@ function buildExternalInput(platform: string, campaign: Doc<"marketingCampaigns"
   }
 }
 
-/** Execute one Composio action. Returns the parsed response body. */
+/**
+ * Execute one Composio tool (API v3: POST /api/v3/tools/execute/{tool_slug}).
+ * v2 is retired (410), so this uses the current v3 contract:
+ * { connected_account_id, arguments }.
+ */
 async function executeComposioAction(
   platform: string,
   campaign: Doc<"marketingCampaigns">,
@@ -105,16 +112,16 @@ async function executeComposioAction(
   if (!apiKey) throw new Error("COMPOSIO_API_KEY is not set");
   const actionSlug = getComposioAction(platform);
   if (!actionSlug) {
-    throw new Error(`No Composio action configured for "${platform}" (set ${actionEnvKey(platform)})`);
+    throw new Error(`No Composio tool configured for "${platform}" (set ${actionEnvKey(platform)})`);
   }
   const connectedAccountId = getConnectedAccountId(platform);
   if (!connectedAccountId) {
     throw new Error(`No connected account for "${platform}" (set ${envKey(platform)})`);
   }
-  const res = await fetch(`${COMPOSIO_BASE}/actions/${encodeURIComponent(actionSlug)}/execute`, {
+  const res = await fetch(`${COMPOSIO_BASE}/api/v3/tools/execute/${encodeURIComponent(actionSlug)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-    body: JSON.stringify({ connectedAccountId, input }),
+    body: JSON.stringify({ connected_account_id: connectedAccountId, arguments: input }),
   });
   if (!res.ok) {
     throw new Error(`Composio ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);

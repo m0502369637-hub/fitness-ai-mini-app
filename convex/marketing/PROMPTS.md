@@ -11,7 +11,7 @@ convex/marketing/
 ├── generator.ts   # HF: text -> image -> video, saves to Convex File Storage
 ├── distributor.ts # Composio (X/LinkedIn/Instagram/TikTok) + Telegram Bot API broadcast
 ├── cleaner.ts     # deletes stored files 24h after a campaign completes
-├── crons.ts       # 08:00 generate / 10:00 distribute / 23:00 cleanup (UTC)
+├── crons.ts       # 18:00 generate / 19:00 distribute / 24:00 cleanup (Riyadh)
 └── PROMPTS.md     # this file
 ```
 
@@ -24,15 +24,29 @@ reads the crons config from the root path.
 
 | Stage | Model | Env override |
 | --- | --- | --- |
-| Text (captions) | `meta-llama/Llama-3-8B-Instruct` | `MARKETING_TEXT_MODEL` |
-| Image | `black-forest-labs/FLUX.1-schnell` | `MARKETING_IMAGE_MODEL` |
-| Video | `stabilityai/stable-video-diffusion-img2vid-xt` | `MARKETING_VIDEO_MODEL` |
+| Text (captions) | `meta-llama/Llama-3.1-8B-Instruct` | `MARKETING_TEXT_MODEL` |
+| Image | `Qwen/Qwen-Image` | `MARKETING_IMAGE_MODEL` |
+| Video | `Lightricks/LTX-Video-0.9.7-distilled` | `MARKETING_VIDEO_MODEL` |
 
-All calls go through the Hugging Face Inference API
-(`https://api-inference.huggingface.co/models/<model>`) with the standard
-`Authorization: Bearer <HF_API_TOKEN>` header and `x-wait-for-model: true`
-(blocks until the model is loaded instead of returning 503). 429/503/5xx,
-timeouts and network errors are retried with exponential backoff.
+> ⚠️ HF retired the legacy serverless API (`api-inference.huggingface.co`,
+> 410 Gone, late 2025). All calls now go through the **router**
+> (`https://router.huggingface.co/hf-inference/models/<model>`), and the token
+> must be a fine-grained token with the **"Make calls to Inference Providers"**
+> permission. The original spec models (`meta-llama/Llama-3-8B-Instruct`,
+> `black-forest-labs/FLUX.1-schnell`, `stabilityai/stable-video-diffusion-img2vid-xt`)
+> are retired upstream; the ids above are their current-generation replacements
+> and can be overridden with the env vars (append `:provider` to pin a provider,
+> e.g. `meta-llama/Llama-3.1-8B-Instruct:cerebras`).
+
+All calls use the standard `Authorization: Bearer <HF_API_TOKEN>` header and
+`x-wait-for-model: true` (blocks until the model is loaded instead of returning
+503). 429/503/5xx, timeouts and network errors are retried with exponential
+backoff.
+
+**Text fallback:** if the HF call fails for any reason (token scope, provider
+catalog gap, network), the engine transparently retries the same prompt with
+the app's DeepSeek model (`DEEPSEEK_API_KEY` + `deepseek-v4-flash`), so caption
+generation keeps working. Disable with `MARKETING_TEXT_FALLBACK=off`.
 
 The video stage receives the **generated image itself** as a base64 data URL
 (`data:image/jpeg;base64,...`). HF cannot download from Convex storage ids, so
@@ -79,6 +93,10 @@ Instagram:      "Write one energetic caption of 130-180 words with line breaks
                 and 2-4 emojis. Call to action: open FitAI on Telegram.
                 8-10 hashtags, fitness niche."
 
+Facebook:       "Write one engaging post of 100-150 words with a conversational
+                tone. End with one clear question that sparks comments and one
+                soft call-to-action. 3-5 hashtags."
+
 TikTok:         "Write one short punchy caption under 140 characters, hook
                 first. 4-6 hashtags including one trending fitness tag."
 ```
@@ -92,7 +110,7 @@ with a regex scan.
 
 ---
 
-## 3. Image prompt (FLUX.1-schnell)
+## 3. Image prompt
 
 ```text
 Cinematic fitness photograph, <theme> featuring <topic>,
@@ -107,25 +125,25 @@ no text, no watermark, no logo
 - `<brandColor>` — default `#d7f26d` (FitAI chartreuse), overridable per run
   via `generateCampaign({ brandColor: "#..." })`.
 
-FLUX.1-schnell returns raw image bytes (JPEG/PNG); the engine stores them with
-`ctx.storage.store()` and records both the `storageId` and the public
-`storage.getUrl()` result.
+The model returns raw image bytes (or a JSON base64 payload — both handled);
+the engine stores them with `ctx.storage.store()` and records both the
+`storageId` and the public `storage.getUrl()` result.
 
 ---
 
-## 4. Video prompt (stable-video-diffusion-img2vid-xt)
+## 4. Video prompt
 
-SVD is an **image-to-video** model: it has no text prompt. The input is the
-image generated in step 3, passed as a base64 data URL.
+The video stage is **image-to-video**: the input is the image generated in
+step 3, passed as a base64 data URL.
 
 ```text
-inputs: "data:image/jpeg;base64,<bytes of the FLUX image>"
+inputs: "data:image/jpeg;base64,<bytes of the generated image>"
 ```
 
 The engine tries both accepted body shapes (`{inputs: dataUrl}` and
 `{inputs: {image: dataUrl}}`) and returns the first that works. The response is
-stored as `video/mp4` (or the content-type HF returns) and its URL is what gets
-posted to TikTok/video-capable channels.
+stored with the content-type HF returns and its URL is what gets posted to
+video-capable channels.
 
 ---
 
@@ -142,21 +160,24 @@ posted to TikTok/video-capable channels.
 }
 ```
 
-| Platform | Default action slug | Env override |
+| Platform | Default tool slug | Env override |
 | --- | --- | --- |
 | X | `TWITTER_CREATE_TWEET` | `COMPOSIO_ACTION_X` |
+| Facebook | `FACEBOOK_CREATE_POST` | `COMPOSIO_ACTION_FACEBOOK` |
 | LinkedIn | `LINKEDIN_CREATE_LINKED_IN_POST` | `COMPOSIO_ACTION_LINKEDIN` |
 | Instagram | `INSTAGRAM_MEDIA_CREATE` | `COMPOSIO_ACTION_INSTAGRAM` |
-| TikTok | `TIKTOK_POST_VIDEO` | `COMPOSIO_ACTION_TIKTOK` |
+| TikTok (optional) | `TIKTOK_POST_VIDEO` | `COMPOSIO_ACTION_TIKTOK` |
+
+Composio API v3: `POST https://backend.composio.dev/api/v3/tools/execute/{tool_slug}`
+with body `{ "connected_account_id": "<id>", "arguments": { ... } }` and the
+`x-api-key` header (v2 is retired — 410).
 
 Connected accounts: `COMPOSIO_CONNECTED_ACCOUNT_ID_X` /
-`..._LINKEDIN` / `..._INSTAGRAM` / `..._TIKTOK` (values from the Composio
-dashboard). If a platform's slug or account is missing, **only that platform**
-is skipped and the failure is logged — other platforms keep posting. If an X
-post with media is rejected, the engine retries text-only automatically.
-
-> The exact action slugs differ per Composio app version — the env overrides
-> exist so slugs can be corrected without code changes.
+`..._FACEBOOK` / `..._LINKEDIN` / `..._INSTAGRAM` (nanoids from
+`GET /api/v3/connected_accounts` in the Composio dashboard/API). If a
+platform's slug or account is missing, **only that platform** is skipped and
+the failure is logged — other platforms keep posting. If an X post with media
+is rejected, the engine retries text-only automatically.
 
 ### Internal (Telegram Bot API)
 
@@ -181,16 +202,16 @@ post with media is rejected, the engine retries text-only automatically.
 
 ---
 
-## 7. Schedule (UTC)
+## 7. Schedule
 
-| Time (UTC) | Job | Function |
-| --- | --- | --- |
-| 08:00 | Generate | `marketing.generator.generateCampaign` |
-| 10:00 | Distribute | `marketing.distributor.runDistribution` |
-| 23:00 | Cleanup | `marketing.cleaner.cleanupOldAssets` |
+| Time (Riyadh, UTC+3) | Time (UTC) | Job | Function |
+| --- | --- | --- | --- |
+| 18:00 | 15:00 | Generate | `marketing.generator.generateCampaign` |
+| 19:00 | 16:00 | Distribute | `marketing.distributor.runDistribution` |
+| 24:00 | 21:00 | Cleanup | `marketing.cleaner.cleanupOldAssets` |
 
-All times are UTC (`hourUTC`). For local times convert, e.g. Riyadh (UTC+3):
-08:00 local = `hourUTC: 5`. Jobs can also be triggered manually:
+Cron schedules are configured in UTC (`hourUTC`). Jobs can also be triggered
+manually:
 
 ```bash
 npx convex run marketing/generator:generateCampaign '{theme:"30-day challenge", topic:"home workouts", brandColor:"#d7f26d"}' --prod
@@ -208,10 +229,10 @@ npx convex run marketing/cleaner:cleanupOldAssets '{}' --prod
 | `COMPOSIO_API_KEY` | Composio action execution |
 | `TELEGRAM_BOT_TOKEN` | internal broadcast to app users (already used by payments) |
 | `MARKETING_ENABLED` | master switch — must be exactly `"true"` or the engine stays dormant |
-| `COMPOSIO_CONNECTED_ACCOUNT_ID_X` / `_LINKEDIN` / `_INSTAGRAM` / `_TIKTOK` | per-platform accounts |
+| `COMPOSIO_CONNECTED_ACCOUNT_ID_X` / `_FACEBOOK` / `_LINKEDIN` / `_INSTAGRAM` | per-platform accounts |
 | `COMPOSIO_ACTION_*` (optional) | override default action slugs |
 | `MARKETING_TEXT_MODEL` / `MARKETING_IMAGE_MODEL` / `MARKETING_VIDEO_MODEL` (optional) | model overrides |
-| `MARKETING_THEME` / `MARKETING_TOPIC` / `MARKETING_BRAND_COLOR` (optional) | defaults for the 08:00 cron run |
+| `MARKETING_THEME` / `MARKETING_TOPIC` / `MARKETING_BRAND_COLOR` (optional) | defaults for the 18:00 cron run |
 | `APP_URL` (optional) | link appended to Telegram messages (default: the Vercel app) |
 
 ```bash
