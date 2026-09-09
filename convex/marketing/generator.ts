@@ -242,28 +242,32 @@ function normalizePlatforms(raw: string[] | undefined): string[] {
 // Prompts (the canonical copies live in convex/marketing/PROMPTS.md)
 // ---------------------------------------------------------------------------
 
-// All marketing content is produced in Arabic (Modern Standard Arabic with a
-// light, energetic tone). Captions, hashtags and the video prompt below are
-// the canonical copies — see convex/marketing/PROMPTS.md.
+// All marketing POSTS are written in Arabic — specifically the warm Saudi
+// white dialect (فصحى خفيفة مخلوطة بالعامية السعودية) so they read like a
+// real Saudi person, not a machine. The video prompt (below) stays in English:
+// video models follow English direction better, and the clip itself carries no
+// text. Canonical copies live in convex/marketing/PROMPTS.md.
 
 const TEXT_SYSTEM_PROMPT = [
-  "أنت كاتب محتوى تسويقي محترف لتطبيق FitAI، تطبيق لياقة مجاني داخل تيليجرام.",
-  "نبرة العلامة: حماسية، جريئة، مباشرة، محفّزة دون وعظ.",
-  "تكتب بالعربية الفصحى الواضحة بأسلوب يناسب كل منصة.",
+  "أنت سعودي تكتب منشورات تسويقية لتطبيق FitAI، تطبيق لياقة مجاني داخل تيليجرام.",
+  "اكتب باللهجة السعودية البيضاء: فصحى خفيفة مخلوطة بالعامية السعودية، كأنك تنصح صاحبك في الجلسة.",
+  "استخدم كلمات عامية طبيعية مثل: الحين، وش تنتظر، مره، يالله، حماس، روق، عساك، ترى، ولا أحلى.",
+  "اكتب كأن إنسان حقيقي كتبها — لا تبدو مكتوبة بالذكاء الاصطناعي.",
+  "ممنوع: العبارات الجاهزة والمبالغات الإعلانية (مثل «ثورة في عالم اللياقة»، «لا تفوّت الفرصة»، «اكتشف السر»)، وممنوع كثرة الإيموجي.",
   "لا تكتب أي تفكير أو شرح — أخرج JSON فوراً.",
   'أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]}.',
 ].join(" ");
 
 const PLATFORM_TEXT_INSTRUCTIONS: Record<string, string> = {
-  x: "المنصة: إكس (تويتر). اكتب منشوراً واحداً سريع الانتشار بحد أقصى 250 حرفاً. ابدأ بجملة افتتاحية تلفت الانتباه. 2-3 وسمات فقط.",
+  x: "المنصة: إكس (تويتر). اكتب تغريدة عفوية بلهجة سعودية، بحد أقصى 250 حرفاً. ابدأ بجملة توقف التمرير مثل «ترى …» أو «وش تنتظر؟». 2-3 وسمات فقط.",
   facebook:
-    "المنصة: فيسبوك. اكتب منشوراً جذاباً من 100-150 كلمة بنبرة حوارية. اختم بسؤال واحد يشجع التفاعل ودعوة لطيفة لاتخاذ إجراء. 3-5 وسمات.",
+    "المنصة: فيسبوك. اكتب منشوراً من 100-150 كلمة بأسلوب سوالف مع الأصدقاء، فيه نبرة سعودية دافية. اختم بسؤال يشجع التعليقات ودعوة خفيفة. 3-5 وسمات.",
   linkedin:
-    "المنصة: لينكدإن. اكتب منشوراً احترافياً من 800-1100 حرف. افتتاحية قائمة على قصة، ثم ثلاث نقاط قيمة مختصرة، ثم دعوة لطيفة لاتخاذ إجراء. 3 وسمات.",
+    "المنصة: لينكدإن. اكتب منشوراً احترافياً من 800-1100 حرف. افتتاحية قصة قصيرة، ثم ثلاث نقاط قيمة، ثم دعوة لطيفة. عربية فصيحة أقرب للرسمية مع لمسة عامية خفيفة جداً. 3 وسمات.",
   instagram:
-    "المنصة: إنستغرام. اكتب وصفاً حماسياً من 130-180 كلمة مع فواصل أسطر و2-4 إيموجي. الدعوة لاتخاذ إجراء: افتح FitAI على تيليجرام. 8-10 وسمات في مجال اللياقة.",
+    "المنصة: إنستغرام. اكتب كابشن حماسي بلهجة سعودية من 130-180 كلمة مع فواصل أسطر و2-3 إيموجي كحد أقصى. الدعوة: افتح FitAI على تيليجرام. 8-10 وسمات لياقة.",
   tiktok:
-    "المنصة: تيك توك. اكتب وصفاً قصيراً مؤثراً أقل من 140 حرفاً، ابدأ بالجملة الأقوى. 4-6 وسمات منها وسم لياقة رائج.",
+    "المنصة: تيك توك. اكتب وصفاً قصيراً بلهجة سعودية أقل من 140 حرفاً، ابدأ بأقوى جملة. 4-6 وسمات منها وسم لياقة رائج.",
 };
 
 function textUserPrompt(platform: string, theme: string, topic: string, brandColor: string): string {
@@ -271,22 +275,25 @@ function textUserPrompt(platform: string, theme: string, topic: string, brandCol
     PLATFORM_TEXT_INSTRUCTIONS[platform],
     `موضوع الحملة: ${theme}.`,
     `الموضوع المركّز: ${topic}.`,
-    `لون العلامة المميز: ${brandColor} (اذكره فقط إن كان مناسباً).`,
+    `لون العلامة المميز: ${brandColor} (اذكره فقط إن كان طبيعياً).`,
     "اذكر بشكل خفيف أن FitAI تطبيق تيليجرام مجاني.",
+    "اكتب بنبرة إنسان سعودي حقيقي — خفيفة، مباشرة، بدون مبالغات إعلانية.",
     "اختم الوصف دائماً برابط التطبيق: https://t.me/FitAI_Training_bot مع الالتزام بحد الطول لكل منصة.",
     'أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]} بدون أي تنسيق إضافي.',
   ].join("\n");
 }
 
+/** Image prompt — English (generation prompts stay English; only the posted
+ *  copy is Arabic). */
 function imagePrompt(theme: string, topic: string, brandColor: string): string {
   return [
-    "صورة لياقة سينمائية احترافية،",
+    "Cinematic fitness photograph,",
     theme,
-    `تعرض ${topic}،`,
-    `مع لون مميز طاغٍ ${brandColor} على ملابس التمرين وأدوات الجيم والإضاءة الخلفية،`,
-    "خلفية داكنة بمزاج درامي، إضاءة حافة درامية، عمق ميدان ضحل، عدسة 35مم،",
-    "دقة فائقة، طابع إعلان رياضي احترافي،",
-    "بدون نصوص، بدون علامة مائية، بدون شعار",
+    `featuring ${topic},`,
+    `dominant accent color ${brandColor} on training apparel, gym equipment and rim lighting,`,
+    "realistic Middle Eastern people, moody dark background, dramatic rim light, shallow depth of field, 35mm lens,",
+    "ultra high resolution, professional sports advertising aesthetic,",
+    "no text, no watermark, no logo",
   ].join(" ");
 }
 
@@ -295,9 +302,9 @@ function imagePrompt(theme: string, topic: string, brandColor: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * 1) Text: one caption per platform via the HF Router's OpenAI-compatible chat
- * completions (auto provider routing); on any HF failure the step falls back
- * to the app's DeepSeek model so caption generation keeps working.
+ * 1) Text: one caption per platform. DeepSeek writes far better Saudi Arabic,
+ * so it is the primary model; the HF Router is the fallback when DeepSeek is
+ * unavailable or fails (disable the fallback with MARKETING_TEXT_FALLBACK=off).
  */
 async function generateCaption(
   platform: string,
@@ -305,38 +312,14 @@ async function generateCaption(
   topic: string,
   brandColor: string,
 ): Promise<CaptionResult> {
-  const model = process.env.MARKETING_TEXT_MODEL ?? DEFAULT_TEXT_MODEL;
   const userPrompt = textUserPrompt(platform, theme, topic, brandColor);
 
-  // --- Attempt 1: Hugging Face router (auto provider selection) ---
-  try {
-    const res = await hfRequest(
-      HF_CHAT_URL,
-      {
-        model,
-        messages: [
-          { role: "system", content: TEXT_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 700,
-        temperature: 0.85,
-      },
-      { timeoutMs: 60_000, maxRetries: 2 },
-    );
-    const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error("HF chat returned empty content");
-    return finishCaption(platform, parseCaption(content));
-  } catch (e) {
-    // --- Attempt 2: DeepSeek fallback (same prompts, OpenAI-compatible API) ---
-    if (process.env.MARKETING_TEXT_FALLBACK === "off") throw e;
-    const fallback = routeModel({ vision: false });
-    if (!fallback) throw e;
+  // --- Attempt 1: DeepSeek (best Arabic quality) ---
+  const primary = routeModel({ vision: false });
+  if (primary) {
     // The DeepSeek text model is a reasoning model: give it a generous token
     // budget so reasoning never starves the caption content.
-    const cfg = { ...fallback, maxTokens: 4000, temperature: 0.7 };
+    const cfg = { ...primary, maxTokens: 4000, temperature: 0.7 };
     let lastError: unknown = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -349,8 +332,33 @@ async function generateCaption(
         lastError = err;
       }
     }
-    throw lastError instanceof Error ? lastError : new Error("DeepSeek fallback failed");
+    if (process.env.MARKETING_TEXT_FALLBACK === "off") {
+      throw lastError instanceof Error ? lastError : new Error("DeepSeek caption generation failed");
+    }
+    // Fall through to the HF attempt.
   }
+
+  // --- Attempt 2: Hugging Face router (auto provider selection) ---
+  const model = process.env.MARKETING_TEXT_MODEL ?? DEFAULT_TEXT_MODEL;
+  const res = await hfRequest(
+    HF_CHAT_URL,
+    {
+      model,
+      messages: [
+        { role: "system", content: TEXT_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      max_tokens: 700,
+      temperature: 0.85,
+    },
+    { timeoutMs: 60_000, maxRetries: 2 },
+  );
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error("HF chat returned empty content");
+  return finishCaption(platform, parseCaption(content));
 }
 
 /** Parse the model's reply: prefer JSON, fall back to regex extraction, then raw text. */
@@ -430,28 +438,28 @@ type MarketingAngle = { pain: string; value: string };
 
 const MARKETING_ANGLES: MarketingAngle[] = [
   {
-    pain: "شخص مشغول بلا وقت للنادي ويشعر بالذنب",
-    value: "FitAI يبني لك خطة شخصية خلال دقائق تناسب جدولك، داخل تيليجرام مباشرة",
+    pain: "A busy professional with no time for the gym, feeling guilty about it",
+    value: "FitAI builds a personal plan in minutes that fits any schedule, right inside Telegram",
   },
   {
-    pain: "الخطط الجاهزة الموحّدة لا تناسب جسدك الحقيقي",
-    value: "FitAI يبني خطتك من هدفك ومستواك وجدولك الزمني — والذكاء الاصطناعي يطوّرها معك",
+    pain: "Generic one-size-fits-all workout plans that never fit a real body",
+    value: "FitAI builds a plan from your goal, level and timeline — and the AI adapts it as you go",
   },
   {
-    pain: "المدربون الشخصيون واشتراكات النادي مكلفة للغاية",
-    value: "FitAI مدرب ذكاء اصطناعي في جيبك بجزء بسيط من التكلفة",
+    pain: "Personal trainers and gym memberships being too expensive",
+    value: "FitAI is an AI coach in your pocket for a fraction of the cost",
   },
   {
-    pain: "الحماس يموت بعد الأسبوع الأول ويختفي التقدم",
-    value: "FitAI يتتبع كل تمرين بسلاسل إنجاز ورسوم بيانية تبقيك مستمراً",
+    pain: "Motivation dying after week one and progress fading away",
+    value: "FitAI tracks every workout with streaks and progress charts that keep you going",
   },
   {
-    pain: "المبتدئ لا يعرف أي تمرين يناسبه أو كيف يؤديه",
-    value: "FitAI يعرض كل تمرين بصور وتعليمات خطوة بخطوة",
+    pain: "A beginner who doesn't know which exercise to do or how to do it",
+    value: "FitAI shows every exercise with step-by-step images and instructions",
   },
   {
-    pain: "تتمرن باستمرار لكنك لا تعرف إن كنت تتحسن فعلاً",
-    value: "FitAI يحوّل كل جلسة إلى تحليلات تقدم يومية وأسبوعية وشهرية تراها بعينك",
+    pain: "Training regularly but never knowing if you are actually improving",
+    value: "FitAI turns every session into day/week/month progress analytics you can see",
   },
 ];
 
@@ -459,18 +467,22 @@ function pickMarketingAngle(): MarketingAngle {
   return MARKETING_ANGLES[Math.floor(Math.random() * MARKETING_ANGLES.length)];
 }
 
-/** The prompt handed to the fal.ai workflow — the endpoint's ONLY input. */
+/**
+ * The prompt handed to the fal.ai workflow — the endpoint's ONLY input.
+ * Kept in English: video models follow English direction best, and the clip
+ * itself contains no text (captions carry the Arabic messaging).
+ */
 function videoMarketingPrompt(theme: string, topic: string): string {
   const angle = pickMarketingAngle();
   return [
-    "فيديو تسويقي عمودي 9:16 لتطبيق FitAI، مدرب لياقة ذكي داخل تيليجرام يبني خططاً تدريبية شخصية ويتتبع تقدمك اليومي بتكلفة أقل من اشتراك النادي.",
-    `القصة: ${angle.pain}.`,
-    `ثم أظهر الحل — ${angle.value}.`,
-    topic ? `موضوع الحملة: ${topic}.` : "",
-    theme ? `فكرة الحملة: ${theme}.` : "",
-    "الأسلوب البصري: سينمائي، طاقة عالية، خلفية داكنة بلمسات ليمونية بلون #d7f26d، يد تحمل هاتفاً يعرض التطبيق، طابع عصري طموح، لقطات متسارعة، أشخاص واقعيون.",
-    "هذا تسويق للتطبيق وليس إعلاناً لنادٍ رياضي: أظهر ألم الحياة اليومية يتحول إلى راحة عبر التطبيق — لا تعرض عرضاً عاماً لتمارين الجيم.",
-    "بدون نصوص، بدون كتابات، بدون علامة مائية أو شعارات داخل الإطار.",
+    "Vertical 9:16 marketing video for FitAI, an AI-powered fitness coach mini app on Telegram that builds personalized workout plans, tracks daily progress and costs less than a gym membership.",
+    `Story: ${angle.pain}.`,
+    `Then show the resolution — ${angle.value}.`,
+    topic ? `Campaign topic: ${topic}.` : "",
+    theme ? `Campaign theme: ${theme}.` : "",
+    "Visual style: cinematic, high-energy, moody dark background with lime-chartreuse #d7f26d accents, a hand holding a phone with the app open, modern and aspirational, fast-paced cuts, realistic Middle Eastern people.",
+    "This is app marketing, not a gym promo: show the lifestyle pain turning into relief through the app — do not show a generic gym workout demonstration.",
+    "No text, no captions, no watermark, no logos in the frame.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -729,11 +741,63 @@ export const listCampaigns = query({
   },
 });
 
+/** Per-channel delivery results for one campaign (status, error, external id). */
+export const listCampaignDistributions = query({
+  args: { campaignId: v.id("marketingCampaigns") },
+  handler: async (ctx, { campaignId }) => {
+    return await ctx.db
+      .query("marketingDistributions")
+      .withIndex("by_campaignId", (q) => q.eq("campaignId", campaignId))
+      .collect();
+  },
+});
+
+/** Audit trail for one campaign (generation/distribution/cleanup steps). */
+export const listCampaignLogs = query({
+  args: { campaignId: v.id("marketingCampaigns"), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const take = Math.min(args.limit ?? 50, 200);
+    return await ctx.db
+      .query("marketingLogs")
+      .withIndex("by_campaignId", (q) => q.eq("campaignId", args.campaignId))
+      .order("desc")
+      .take(take);
+  },
+});
+
 /** One campaign by id (full document). */
 export const getCampaign = query({
   args: { campaignId: v.id("marketingCampaigns") },
   handler: async (ctx, { campaignId }) => {
     return await ctx.db.get(campaignId);
+  },
+});
+
+/**
+ * Diagnostic: fetch the input schema of one Composio v3 tool so the exact
+ * argument names can be verified without trial-and-error posting.
+ */
+export const debugComposioTool = action({
+  args: { toolSlug: v.string() },
+  handler: async (_ctx, { toolSlug }) => {
+    const apiKey = process.env.COMPOSIO_API_KEY;
+    if (!apiKey) return { error: "COMPOSIO_API_KEY not set" };
+    const res = await fetch(
+      `https://backend.composio.dev/api/v3.1/tools/${encodeURIComponent(toolSlug)}`,
+      { headers: { "x-api-key": apiKey } },
+    );
+    const body = await res.text().catch(() => "");
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      // keep raw text
+    }
+    return {
+      status: res.status,
+      body: body.slice(0, 20000),
+      parsed: JSON.stringify(parsed ?? null).slice(0, 20000),
+    };
   },
 });
 

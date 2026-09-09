@@ -59,19 +59,23 @@ generation keeps working. Disable with `MARKETING_TEXT_FALLBACK=off`.
 
 ---
 
-## 2. Text prompts (Llama-3-8B-Instruct)
+## 2. Text prompts — Saudi Arabic, human voice
 
-**All marketing content is produced in Arabic** (Modern Standard Arabic with a
-light, energetic tone). The model is called on the raw text-generation
-endpoint, so the full Llama 3 chat template is applied around system + user
-turns.
+**All marketing POSTS are written in Saudi white dialect** (فصحى خفيفة مخلوطة
+بالعامية السعودية) so they read like a real Saudi person, not AI. Generation
+prompts (image/video) stay English — only the posted copy is Arabic.
+
+**Caption model order:** DeepSeek first (by far the best Arabic), Hugging Face
+Router as fallback. Disable the fallback with `MARKETING_TEXT_FALLBACK=off`.
 
 ### System prompt (all platforms)
 
 ```text
-أنت كاتب محتوى تسويقي محترف لتطبيق FitAI، تطبيق لياقة مجاني داخل تيليجرام.
-نبرة العلامة: حماسية، جريئة، مباشرة، محفّزة دون وعظ.
-تكتب بالعربية الفصحى الواضحة بأسلوب يناسب كل منصة.
+أنت سعودي تكتب منشورات تسويقية لتطبيق FitAI، تطبيق لياقة مجاني داخل تيليجرام.
+اكتب باللهجة السعودية البيضاء: فصحى خفيفة مخلوطة بالعامية السعودية، كأنك تنصح صاحبك في الجلسة.
+استخدم كلمات عامية طبيعية مثل: الحين، وش تنتظر، مره، يالله، حماس، روق، عساك، ترى، ولا أحلى.
+اكتب كأن إنسان حقيقي كتبها — لا تبدو مكتوبة بالذكاء الاصطناعي.
+ممنوع: العبارات الجاهزة والمبالغات الإعلانية (مثل «ثورة في عالم اللياقة»، «لا تفوّت الفرصة»، «اكتشف السر»)، وممنوع كثرة الإيموجي.
 لا تكتب أي تفكير أو شرح — أخرج JSON فوراً.
 أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]}.
 ```
@@ -82,8 +86,9 @@ turns.
 <PLATFORM_INSTRUCTIONS>
 موضوع الحملة: <theme>.
 الموضوع المركّز: <topic>.
-لون العلامة المميز: <brandColor> (اذكره فقط إن كان مناسباً).
+لون العلامة المميز: <brandColor> (اذكره فقط إن كان طبيعياً).
 اذكر بشكل خفيف أن FitAI تطبيق تيليجرام مجاني.
+اكتب بنبرة إنسان سعودي حقيقي — خفيفة، مباشرة، بدون مبالغات إعلانية.
 اختم الوصف دائماً برابط التطبيق: https://t.me/FitAI_Training_bot مع الالتزام بحد الطول لكل منصة.
 أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]} بدون أي تنسيق إضافي.
 ```
@@ -91,27 +96,28 @@ turns.
 ### Platform instructions
 
 ```text
-X (Twitter):    "المنصة: إكس (تويتر). اكتب منشوراً واحداً سريع الانتشار بحد
-                أقصى 250 حرفاً. ابدأ بجملة افتتاحية تلفت الانتباه. 2-3 وسمات فقط."
+X (Twitter):    "المنصة: إكس (تويتر). اكتب تغريدة عفوية بلهجة سعودية، بحد
+                أقصى 250 حرفاً. ابدأ بجملة توقف التمرير مثل «ترى …» أو
+                «وش تنتظر؟». 2-3 وسمات فقط."
 
 LinkedIn:       "المنصة: لينكدإن. اكتب منشوراً احترافياً من 800-1100 حرف.
-                افتتاحية قائمة على قصة، ثم ثلاث نقاط قيمة مختصرة، ثم دعوة
-                لطيفة لاتخاذ إجراء. 3 وسمات."
+                افتتاحية قصة قصيرة، ثم ثلاث نقاط قيمة، ثم دعوة لطيفة.
+                عربية فصيحة أقرب للرسمية مع لمسة عامية خفيفة جداً. 3 وسمات."
 
-Instagram:      "المنصة: إنستغرام. اكتب وصفاً حماسياً من 130-180 كلمة مع فواصل
-                أسطر و2-4 إيموجي. الدعوة لاتخاذ إجراء: افتح FitAI على
-                تيليجرام. 8-10 وسمات في مجال اللياقة."
+Instagram:      "المنصة: إنستغرام. اكتب كابشن حماسي بلهجة سعودية من 130-180
+                كلمة مع فواصل أسطر و2-3 إيموجي كحد أقصى. الدعوة: افتح FitAI
+                على تيليجرام. 8-10 وسمات لياقة."
 
-Facebook:       "المنصة: فيسبوك. اكتب منشوراً جذاباً من 100-150 كلمة بنبرة
-                حوارية. اختم بسؤال واحد يشجع التفاعل ودعوة لطيفة لاتخاذ
-                إجراء. 3-5 وسمات."
+Facebook:       "المنصة: فيسبوك. اكتب منشوراً من 100-150 كلمة بأسلوب سوالف
+                مع الأصدقاء، فيه نبرة سعودية دافية. اختم بسؤال يشجع
+                التعليقات ودعوة خفيفة. 3-5 وسمات."
 
-TikTok:         "المنصة: تيك توك. اكتب وصفاً قصيراً مؤثراً أقل من 140 حرفاً،
-                ابدأ بالجملة الأقوى. 4-6 وسمات منها وسم لياقة رائج."
+TikTok:         "المنصة: تيك توك. اكتب وصفاً قصيراً بلهجة سعودية أقل من 140
+                حرفاً، ابدأ بأقوى جملة. 4-6 وسمات منها وسم لياقة رائج."
 ```
 
-Generation parameters: `max_new_tokens: 220, temperature: 0.85, do_sample: true,
-return_full_text: false`.
+Generation parameters (DeepSeek primary): `maxTokens 4000, temperature 0.7`
+(reasoning model — the budget keeps reasoning from starving the caption).
 
 The reply is parsed as JSON with a graceful fallback: if the model returns
 plain text, the whole text becomes the caption and `#hashtags` are extracted
@@ -125,14 +131,17 @@ Defaults (`MARKETING_THEME` / `MARKETING_TOPIC` overridable):
 
 ---
 
-## 3. Image prompt (Arabic)
+## 3. Image prompt (English)
+
+Generation prompts stay English (image/video models follow English direction
+best); only the posted copy is Arabic.
 
 ```text
-صورة لياقة سينمائية احترافية، <theme> تعرض <topic>،
-مع لون مميز طاغٍ <brandColor> على ملابس التمرين وأدوات الجيم والإضاءة الخلفية،
-خلفية داكنة بمزاج درامي، إضاءة حافة درامية، عمق ميدان ضحل، عدسة 35مم،
-دقة فائقة، طابع إعلان رياضي احترافي،
-بدون نصوص، بدون علامة مائية، بدون شعار
+Cinematic fitness photograph, <theme> featuring <topic>,
+dominant accent color <brandColor> on training apparel, gym equipment and rim lighting,
+realistic Middle Eastern people, moody dark background, dramatic rim light,
+shallow depth of field, 35mm lens, ultra high resolution,
+professional sports advertising aesthetic, no text, no watermark, no logo
 ```
 
 - `<theme>` — e.g. `تحول لياقي خلال 30 يوماً`
@@ -168,33 +177,34 @@ capped by Convex's action timeout).
 ### The marketing angle (the point of the clip)
 
 The clip must **market FitAI itself — its value proposition — not a gym promo
-or a workout demonstration**. The prompt is written **in Arabic** so the
-scenes, people and lifestyle feel native to the Arabic audience. Each campaign
-draws one angle from a rotating pool of pain→value pairs ("mix for marketing"),
-so consecutive drops stay fresh. The pool:
+or a workout demonstration**. Each campaign draws one angle from a rotating
+pool of pain→value pairs ("mix for marketing"), so consecutive drops stay
+fresh. The pool (stored in English — the prompt is English):
 
-| # | الألم (افتتاحية القصة) | القيمة (الحل — ما يقدمه FitAI) |
+| # | Pain (story opening) | Value (resolution — what FitAI delivers) |
 | --- | --- | --- |
-| 1 | شخص مشغول بلا وقت للنادي ويشعر بالذنب | خطة شخصية خلال دقائق تناسب جدولك، داخل تيليجرام |
-| 2 | الخطط الجاهزة الموحّدة لا تناسب جسدك | خطة من هدفك ومستواك وجدولك، يطوّرها الذكاء الاصطناعي |
-| 3 | المدربون واشتراكات النادي مكلفة | مدرب ذكاء اصطناعي في جيبك بجزء بسيط من التكلفة |
-| 4 | الحماس يموت بعد الأسبوع الأول | سلاسل إنجاز ورسوم بيانية تبقيك مستمراً |
-| 5 | المبتدئ لا يعرف أي تمرين يناسبه | صور وتعليمات خطوة بخطوة لكل تمرين |
-| 6 | تتمرن دون أن تعرف إن كنت تتحسن | تحليلات تقدم يومية وأسبوعية وشهرية |
+| 1 | Busy professional, no time for the gym | Personal plan in minutes, fits any schedule, inside Telegram |
+| 2 | Generic one-size-fits-all plans never work | Plan built from your goal, level and timeline, adapted by AI |
+| 3 | Trainers and memberships are too expensive | An AI coach in your pocket for a fraction of the cost |
+| 4 | Motivation dies after week one | Streaks + progress charts keep you going |
+| 5 | Beginners don't know which exercises to do | Step-by-step images and instructions for every exercise |
+| 6 | Training without knowing if you're improving | Day/week/month progress analytics |
 
-### Assembled prompt (Arabic)
+### Assembled prompt (English)
 
 ```text
-فيديو تسويقي عمودي 9:16 لتطبيق FitAI، مدرب لياقة ذكي داخل تيليجرام يبني خططاً
-تدريبية شخصية ويتتبع تقدمك اليومي بتكلفة أقل من اشتراك النادي.
-القصة: <pain>.
-ثم أظهر الحل — <value>.
-موضوع الحملة: <topic>. فكرة الحملة: <theme>.
-الأسلوب البصري: سينمائي، طاقة عالية، خلفية داكنة بلمسات ليمونية بلون #d7f26d،
-يد تحمل هاتفاً يعرض التطبيق، طابع عصري طموح، لقطات متسارعة، أشخاص واقعيون.
-هذا تسويق للتطبيق وليس إعلاناً لنادٍ رياضي: أظهر ألم الحياة اليومية يتحول إلى
-راحة عبر التطبيق — لا تعرض عرضاً عاماً لتمارين الجيم.
-بدون نصوص، بدون كتابات، بدون علامة مائية أو شعارات داخل الإطار.
+Vertical 9:16 marketing video for FitAI, an AI-powered fitness coach mini app
+on Telegram that builds personalized workout plans, tracks daily progress and
+costs less than a gym membership.
+Story: <pain>.
+Then show the resolution — <value>.
+Campaign topic: <topic>. Campaign theme: <theme>.
+Visual style: cinematic, high-energy, moody dark background with lime-chartreuse
+#d7f26d accents, a hand holding a phone with the app open, modern and
+aspirational, fast-paced cuts, realistic Middle Eastern people.
+This is app marketing, not a gym promo: show the lifestyle pain turning into
+relief through the app — do not show a generic gym workout demonstration.
+No text, no captions, no watermark, no logos in the frame.
 ```
 
 If the workflow fails, the step logs the error and the campaign continues with
@@ -217,11 +227,36 @@ captions + image (the Instagram Reel then falls back to the image).
 
 | Platform | Tool flow | Extra env |
 | --- | --- | --- |
-| X | `TWITTER_UPLOAD_MEDIA` → `TWITTER_CREATION_OF_A_POST` (text-only retry) | — |
-| Facebook | `FACEBOOK_CREATE_PHOTO_POST` | `COMPOSIO_FACEBOOK_PAGE_ID` (Page id) |
+| X | `TWITTER_UPLOAD_MEDIA` → `TWITTER_CREATION_OF_A_POST` (text-only retry, then direct X API) | — |
+| Facebook | `FACEBOOK_CREATE_PHOTO_POST` (`published: true`; image uploaded via Composio files, URL fallback) | `COMPOSIO_FACEBOOK_PAGE_ID` (Page id) |
 | Instagram | `INSTAGRAM_POST_IG_USER_MEDIA` → `INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH` | `COMPOSIO_INSTAGRAM_IG_USER_ID` (professional account id) |
 | LinkedIn | `LINKEDIN_CREATE_LINKED_IN_POST` | `COMPOSIO_LINKEDIN_AUTHOR` (e.g. `urn:li:person:XXXX`) |
 | TikTok (optional) | `TIKTOK_POST_VIDEO` | — |
+
+**Media uploads (X/Facebook):** Composio media tools take a FileUploadable
+`{name, s3key, mimetype}` — inline base64 is not accepted. The engine uses the
+v3 two-step flow: `POST /api/v3/files/upload/request`
+`{toolkit_slug, tool_slug, filename, mimetype, md5}` → PUT the bytes to the
+returned `new_presigned_url` → pass the returned `key` as `s3key`. MD5 is
+computed in-app (Web Crypto has no MD5). Facebook falls back to the public
+`url` if the upload fails.
+
+**Response envelopes are validated:** Composio often returns HTTP 200 with the
+failure inside the body (`error`, `successful: false`, `data.error`) — such
+envelopes are treated as failures and logged, never as phantom "sent" posts.
+Every successful platform post logs its raw response snippet, and the X
+fallback chain records all three stage errors (`media:` / `text-only:` /
+`direct:`).
+
+> ⚠️ **X requires API credits.** Posting tweets calls the X API v2
+> `/2/tweets` endpoint; when the developer account's credits run out it
+> returns `402 credits depleted` and no post is possible (media uploads on
+> v1.1 still succeed). Top up the app's tier at developer.x.com when this
+> appears in the logs.
+>
+> ⚠️ **Facebook page id:** the env must match a page the connected account
+> actually manages — Composio lists the available ids in its error message
+> (e.g. `page_id:12667-18683-19824-2` → use `1266718683198242`).
 
 Connected accounts: `COMPOSIO_CONNECTED_ACCOUNT_ID_X` /
 `..._FACEBOOK` / `..._LINKEDIN` / `..._INSTAGRAM` (nanoids from

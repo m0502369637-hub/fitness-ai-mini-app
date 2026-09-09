@@ -110,12 +110,12 @@ function captionFor(campaign: Doc<"marketingCampaigns">, platform: string): stri
 // stays the platform-native one.
 
 const REPURPOSE_HOOKS = [
-  "🚀 جاهز تبدأ؟",
-  "💪 اليوم أفضل وقت",
-  "🔥 لا تؤجل رحلتك",
-  "⚡ ابدأ الآن",
+  "🚀 وش تنتظر؟",
+  "💪 اليوم أفضل وقت تبدأ",
+  "🔥 ترى ما في أعذار",
+  "⚡ يالله نبدأ",
   "🎯 هدفك يبدأ اليوم",
-  "✨ نسختك الأفضل تنتظرك",
+  "✨ أفضل نسخة منك تنتظرك",
 ];
 
 /** Rotate a hook prefix by the calendar day so consecutive drops differ. */
@@ -164,17 +164,154 @@ async function runComposioTool(
   if (!res.ok) {
     throw new Error(`Composio ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
   }
-  return await res.json();
+  const body = (await res.json()) as unknown;
+  // Composio often returns 200 with the failure inside the envelope — a
+  // silent "sent" here would be a phantom post. Validate before trusting it.
+  const envelopeError = envelopeErrorText(body);
+  if (envelopeError) {
+    throw new Error(`Composio ${toolSlug} envelope error: ${envelopeError.slice(0, 300)}`);
+  }
+  return body;
+}
+
+/**
+ * Look for failure signals inside a Composio v3 response envelope
+ * ({error, successful:false, data.error, ...}). Returns the message or null.
+ */
+function envelopeErrorText(body: unknown): string | null {
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (typeof record.error === "string" && record.error) return record.error;
+    if (record.successful === false) {
+      const detail =
+        typeof record.error === "string"
+          ? record.error
+          : JSON.stringify(record.error ?? record.data ?? "").slice(0, 200);
+      return `successful:false — ${detail}`;
+    }
+    const data = record.data;
+    if (data && typeof data === "object") {
+      const inner = data as Record<string, unknown>;
+      if (typeof inner.error === "string" && inner.error) return inner.error;
+      if (typeof inner.error_message === "string" && inner.error_message) return inner.error_message;
+    }
+    if (typeof record.error_message === "string" && record.error_message) return record.error_message;
+  }
+  return null;
+}
+
+/**
+ * Compact MD5 (RFC 1321) over bytes. Composio's upload-request endpoint
+ * requires an md5; Web Crypto offers SHA-family only, so this is inlined.
+ */
+function md5Hex(input: Uint8Array): string {
+  const K = new Uint32Array([
+    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
+  ]);
+  const S = [
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+  ];
+  const len = input.length;
+  const padded = new Uint8Array((((len + 8) >> 6) + 1) << 6);
+  padded.set(input);
+  padded[len] = 0x80;
+  const dv = new DataView(padded.buffer);
+  dv.setUint32(padded.length - 8, (len << 3) >>> 0, true);
+  dv.setUint32(padded.length - 4, (len >>> 29) >>> 0, true);
+  let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+  const M = new Uint32Array(16);
+  for (let off = 0; off < padded.length; off += 64) {
+    for (let i = 0; i < 16; i++) M[i] = dv.getUint32(off + i * 4, true);
+    let A = a0, B = b0, C = c0, D = d0;
+    for (let i = 0; i < 64; i++) {
+      let F: number, g: number;
+      if (i < 16) { F = (B & C) | (~B & D); g = i; }
+      else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+      else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; }
+      else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+      F = (F + A + K[i] + M[g]) >>> 0;
+      A = D; D = C; C = B;
+      B = (B + ((F << S[i]) | (F >>> (32 - S[i])))) >>> 0;
+    }
+    a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+  }
+  const out = new Uint8Array(16);
+  const odv = new DataView(out.buffer);
+  odv.setUint32(0, a0, true); odv.setUint32(4, b0, true); odv.setUint32(8, c0, true); odv.setUint32(12, d0, true);
+  return Array.from(out, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Upload bytes to Composio's file store and return the s3key. Composio media
+ * tools (Facebook photo, X media upload) accept `{name, s3key, mimetype}`
+ * FileUploadable objects — NOT inline base64 content. The v3 flow is:
+ *   1. POST /api/v3/files/upload/request {toolkit_slug, tool_slug, filename,
+ *      mimetype, md5}  ->  {key, new_presigned_url}
+ *   2. PUT the bytes to the presigned S3 url
+ */
+async function composioUploadFile(
+  toolkitSlug: string,
+  toolSlug: string,
+  bytes: Uint8Array,
+  name: string,
+  mimetype: string,
+): Promise<string> {
+  const apiKey = process.env.COMPOSIO_API_KEY;
+  if (!apiKey) throw new Error("COMPOSIO_API_KEY is not set");
+  const reqRes = await fetch(`${COMPOSIO_BASE}/api/v3/files/upload/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+    body: JSON.stringify({
+      toolkit_slug: toolkitSlug,
+      tool_slug: toolSlug,
+      filename: name,
+      mimetype,
+      md5: md5Hex(bytes),
+    }),
+  });
+  if (!reqRes.ok) {
+    throw new Error(`Composio upload request ${reqRes.status}: ${(await reqRes.text().catch(() => "")).slice(0, 300)}`);
+  }
+  const info = (await reqRes.json()) as Record<string, unknown>;
+  const presigned = (info.new_presigned_url ?? info.newPresignedUrl ?? info.upload_url) as
+    | string
+    | undefined;
+  const key = (info.key ?? info.id) as string | undefined;
+  if (!presigned || !key) {
+    throw new Error(`Composio upload request returned no presigned url/key: ${JSON.stringify(info).slice(0, 300)}`);
+  }
+  const putRes = await fetch(presigned, {
+    method: "PUT",
+    headers: { "Content-Type": mimetype },
+    body: bytes as unknown as BodyInit,
+  });
+  if (!putRes.ok) {
+    throw new Error(`S3 presigned upload ${putRes.status}: ${(await putRes.text().catch(() => "")).slice(0, 200)}`);
+  }
+  return key;
 }
 
 /** Dig a string field out of a Composio v3 response envelope. */
 function extractString(data: unknown, ...keys: string[]): string | undefined {
+  // Walk through nested {data:...} envelopes (up to 3 levels deep — e.g.
+  // {"data":{"data":{"id":...}}} from TWITTER_UPLOAD_MEDIA).
   const candidates: unknown[] = [];
-  const root = data as { data?: unknown; output?: unknown; result?: unknown } | null;
-  if (root && typeof root === "object") {
-    candidates.push(root.data, root.output, root.result);
+  let current: unknown = data;
+  for (let i = 0; i < 3 && current !== null && typeof current === "object"; i++) {
+    candidates.push(current);
+    const record = current as { data?: unknown; output?: unknown; result?: unknown };
+    current = record.data ?? record.output ?? record.result;
   }
-  candidates.push(data);
   for (const c of candidates) {
     if (!c || typeof c !== "object") continue;
     if (Array.isArray(c) && c.length > 0) {
@@ -191,7 +328,7 @@ function extractString(data: unknown, ...keys: string[]): string | undefined {
   return undefined;
 }
 
-/** X: upload the campaign image, then create the tweet with the media attached. */
+/** X: upload the campaign image via Composio files, then create the tweet with media. */
 async function postToX(campaign: Doc<"marketingCampaigns">): Promise<unknown> {
   const postSlug = getToolSlug("x");
   const uploadSlug = getExtraToolSlug("x_upload");
@@ -203,16 +340,22 @@ async function postToX(campaign: Doc<"marketingCampaigns">): Promise<unknown> {
   const imgRes = await fetch(campaign.imageUrl);
   if (!imgRes.ok) throw new Error(`Could not download campaign image: ${imgRes.status}`);
   const bytes = new Uint8Array(await imgRes.arrayBuffer());
+  // Composio's TWITTER_UPLOAD_MEDIA wants a FileUploadable {name, s3key, mimetype}.
+  const s3key = await composioUploadFile("twitter", uploadSlug, bytes, "campaign.jpg", "image/jpeg");
   const uploadRes = await runComposioTool("x", uploadSlug, {
-    media: { name: "campaign.jpg", content: bytesToBase64(bytes), mime_type: "image/jpeg" },
+    media: { name: "campaign.jpg", s3key, mimetype: "image/jpeg" },
     media_type: "image/jpeg",
+    media_category: "tweet_image",
   });
   const mediaId = extractString(uploadRes, "media_id_string", "media_id", "mediaId", "id");
-  if (!mediaId) throw new Error("X media upload returned no media id");
+  if (!mediaId) {
+    throw new Error(`X media upload returned no media id — response: ${JSON.stringify(uploadRes).slice(0, 400)}`);
+  }
   return await runComposioTool("x", postSlug, { text: caption, media_media_ids: [mediaId] });
 }
 
-/** Facebook: photo post to a page (page_id from env, photo via public URL). */
+/** Facebook: photo post to a page. Uploads the image to Composio's file store
+ *  and passes the FileUploadable; `published: true` so the post goes live. */
 async function postToFacebook(campaign: Doc<"marketingCampaigns">): Promise<unknown> {
   const slug = getToolSlug("facebook");
   if (!slug) throw new Error("No Composio tool configured for facebook");
@@ -220,8 +363,25 @@ async function postToFacebook(campaign: Doc<"marketingCampaigns">): Promise<unkn
   if (!pageId) {
     throw new Error("COMPOSIO_FACEBOOK_PAGE_ID is not set (your Facebook Page id)");
   }
-  const input: Record<string, unknown> = { page_id: pageId, message: captionFor(campaign, "facebook") };
-  if (campaign.imageUrl) input.url = campaign.imageUrl;
+  const message = captionFor(campaign, "facebook");
+  const input: Record<string, unknown> = { page_id: pageId, message, published: true };
+  if (campaign.imageUrl) {
+    // Preferred path: upload to Composio files and hand Facebook the
+    // FileUploadable (Facebook's servers don't need to fetch our URL).
+    try {
+      const imgRes = await fetch(campaign.imageUrl);
+      if (imgRes.ok) {
+        const bytes = new Uint8Array(await imgRes.arrayBuffer());
+        const s3key = await composioUploadFile("facebook", slug, bytes, "campaign.jpg", "image/jpeg");
+        input.photo = { name: "campaign.jpg", s3key, mimetype: "image/jpeg" };
+        return await runComposioTool("facebook", slug, input);
+      }
+    } catch (e) {
+      // Fall through to the URL path below.
+      console.log(`Facebook file upload failed (${errMsg(e)}) — falling back to url`);
+    }
+    input.url = campaign.imageUrl;
+  }
   return await runComposioTool("facebook", slug, input);
 }
 
@@ -481,6 +641,10 @@ export const runDistribution = action({
     // doing nothing. Keeps content flowing every day while generation stays
     // at 3×/week to save money.
     repurpose: v.optional(v.boolean()),
+    // Limit this run to specific platforms (e.g. ["facebook","x"] to re-post
+    // only the channels that failed). Explicitly selected platforms are always
+    // attempted, even if they were already marked sent.
+    platforms: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<DistributionResult> => {
     if (process.env.MARKETING_ENABLED !== "true") {
@@ -515,6 +679,10 @@ export const runDistribution = action({
     const campaignId = campaign._id;
     // The campaign view used for posting: repurpose days get rotated hooks.
     const working = isRepurpose ? repurposedCampaign(campaign) : campaign;
+    // Platforms to post to in this run.
+    const targetPlatforms = args.platforms
+      ? campaign.platforms.filter((p) => args.platforms?.includes(p))
+      : campaign.platforms;
     const log = (level: LogLevel, source: string, message: string) =>
       ctx.runMutation(internal.marketing.internals.log, { campaignId, level, source, message });
 
@@ -531,52 +699,68 @@ export const runDistribution = action({
     // ---- 1) External platforms via Composio (isolated per platform) ---------
     if (!process.env.COMPOSIO_API_KEY) {
       await log("warn", "distributor.composio", "COMPOSIO_API_KEY not set — external platforms skipped");
-      for (const platform of campaign.platforms) {
+      for (const platform of targetPlatforms) {
         results[platform] = { status: "skipped", error: "COMPOSIO_API_KEY not set" };
       }
     } else {
-      for (const platform of campaign.platforms) {
+      for (const platform of targetPlatforms) {
         // Force re-runs skip channels that already succeeded (no duplicate
-        // posts) — except on repurpose days, where re-posting IS the point.
-        const existing = isRepurpose
-          ? null
-          : await ctx.runQuery(internal.marketing.internals.getDistribution, {
-              campaignId,
-              platform,
-            });
+        // posts) — except on repurpose days, where re-posting IS the point,
+        // and except when the caller explicitly selected this platform.
+        const explicitlySelected = args.platforms?.includes(platform) === true;
+        const existing =
+          isRepurpose || explicitlySelected
+            ? null
+            : await ctx.runQuery(internal.marketing.internals.getDistribution, {
+                campaignId,
+                platform,
+              });
         if (existing?.status === "sent") {
           results[platform] = { status: "sent" };
           await log("info", `distributor.${platform}`, "Already posted — skipped on force re-run");
           continue;
         }
         try {
-          await postToPlatform(platform, working);
+          const raw = await postToPlatform(platform, working);
           results[platform] = { status: "sent" };
+          await log(
+            "info",
+            `distributor.${platform}`,
+            `Posted successfully — response: ${JSON.stringify(raw ?? null).slice(0, 400)}`,
+          );
         } catch (e) {
-          // X fallbacks: text-only via Composio, then the direct X API (OAuth 1.0a).
-          if (platform === "x" && working.imageUrl) {
-            try {
-              const postSlug = getToolSlug("x");
-              if (!postSlug) throw new Error("No Composio tool configured for x");
-              await runComposioTool("x", postSlug, { text: captionFor(working, "x") });
-              results[platform] = { status: "sent" };
-              await log("warn", "distributor.x", "Media tweet failed — posted text-only fallback");
-            } catch (e2) {
+          // X fallbacks: text-only via Composio, then the direct X API
+          // (OAuth 1.0a). Every stage's error is recorded in the chain so a
+          // failed tweet is diagnosable from the audit log alone.
+          if (platform === "x") {
+            const parts: string[] = [working.imageUrl ? `media: ${errMsg(e)}` : `post: ${errMsg(e)}`];
+            if (working.imageUrl) {
+              try {
+                const postSlug = getToolSlug("x");
+                if (!postSlug) throw new Error("No Composio tool configured for x");
+                await runComposioTool("x", postSlug, { text: captionFor(working, "x") });
+                results[platform] = { status: "sent" };
+                await log("warn", "distributor.x", `Media tweet failed (${errMsg(e)}) — posted text-only fallback`);
+              } catch (e2) {
+                parts.push(`text-only: ${errMsg(e2)}`);
+                try {
+                  await postToXDirect(working);
+                  results[platform] = { status: "sent" };
+                  await log("warn", "distributor.x", `Composio X failed (${errMsg(e2)}) — posted via the direct X API`);
+                } catch (e3) {
+                  parts.push(`direct: ${errMsg(e3)}`);
+                  results[platform] = { status: "failed", error: parts.join("; ") };
+                }
+              }
+            } else {
               try {
                 await postToXDirect(working);
                 results[platform] = { status: "sent" };
                 await log("warn", "distributor.x", "Composio X failed — posted via the direct X API");
-              } catch (e3) {
-                results[platform] = { status: "failed", error: errMsg(e3) };
+              } catch (e2) {
+                parts.push(`direct: ${errMsg(e2)}`);
+                results[platform] = { status: "failed", error: parts.join("; ") };
               }
-            }
-          } else if (platform === "x") {
-            try {
-              await postToXDirect(working);
-              results[platform] = { status: "sent" };
-              await log("warn", "distributor.x", "Composio X failed — posted via the direct X API");
-            } catch (e2) {
-              results[platform] = { status: "failed", error: errMsg(e2) };
             }
           } else {
             results[platform] = { status: "failed", error: errMsg(e) };
