@@ -4,6 +4,9 @@ This document is the single source of truth for the **Autonomous Marketing OS**
 (`convex/marketing/`). It lists every AI prompt the engine sends, the model
 configuration, the required environment variables, and the schedule.
 
+**All marketing content — captions, hashtags, Telegram broadcasts and the video
+prompt — is produced in Arabic** (Modern Standard Arabic, energetic tone).
+
 ```
 convex/marketing/
 ├── schema.ts      # tables merged into the app schema (campaigns/assets/logs/distributions)
@@ -58,49 +61,53 @@ generation keeps working. Disable with `MARKETING_TEXT_FALLBACK=off`.
 
 ## 2. Text prompts (Llama-3-8B-Instruct)
 
-The model is called on the raw text-generation endpoint, so the full
-Llama 3 chat template is applied around system + user turns.
+**All marketing content is produced in Arabic** (Modern Standard Arabic with a
+light, energetic tone). The model is called on the raw text-generation
+endpoint, so the full Llama 3 chat template is applied around system + user
+turns.
 
 ### System prompt (all platforms)
 
 ```text
-You are a senior social media copywriter for FitAI, a free fitness mini app on Telegram.
-Brand voice: energetic, bold, zero fluff, motivating but never preachy.
-You write platform-native copy, not generic text.
-Reply with strict JSON only: {"caption":"...","hashtags":["..."]}.
+أنت كاتب محتوى تسويقي محترف لتطبيق FitAI، تطبيق لياقة مجاني داخل تيليجرام.
+نبرة العلامة: حماسية، جريئة، مباشرة، محفّزة دون وعظ.
+تكتب بالعربية الفصحى الواضحة بأسلوب يناسب كل منصة.
+لا تكتب أي تفكير أو شرح — أخرج JSON فوراً.
+أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]}.
 ```
 
 ### User prompt template
 
 ```text
 <PLATFORM_INSTRUCTIONS>
-Campaign theme: <theme>.
-Focus topic: <topic>.
-Brand accent color: <brandColor> (mention it only if it fits naturally).
-Mention lightly that FitAI is a free Telegram mini app.
-Reply with ONLY a JSON object: {"caption":"...","hashtags":["..."]}. No markdown fences.
+موضوع الحملة: <theme>.
+الموضوع المركّز: <topic>.
+لون العلامة المميز: <brandColor> (اذكره فقط إن كان مناسباً).
+اذكر بشكل خفيف أن FitAI تطبيق تيليجرام مجاني.
+اختم الوصف دائماً برابط التطبيق: https://t.me/FitAI_Training_bot مع الالتزام بحد الطول لكل منصة.
+أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]} بدون أي تنسيق إضافي.
 ```
 
 ### Platform instructions
 
 ```text
-X (Twitter):    "Write one viral post, maximum 250 characters. Start with a
-                scroll-stopping hook. 2-3 hashtags only."
+X (Twitter):    "المنصة: إكس (تويتر). اكتب منشوراً واحداً سريع الانتشار بحد
+                أقصى 250 حرفاً. ابدأ بجملة افتتاحية تلفت الانتباه. 2-3 وسمات فقط."
 
-LinkedIn:       "Write one professional post of 800-1100 characters.
-                Story-driven opening line, then three short value bullets, one
-                soft call-to-action. 3 hashtags."
+LinkedIn:       "المنصة: لينكدإن. اكتب منشوراً احترافياً من 800-1100 حرف.
+                افتتاحية قائمة على قصة، ثم ثلاث نقاط قيمة مختصرة، ثم دعوة
+                لطيفة لاتخاذ إجراء. 3 وسمات."
 
-Instagram:      "Write one energetic caption of 130-180 words with line breaks
-                and 2-4 emojis. Call to action: open FitAI on Telegram.
-                8-10 hashtags, fitness niche."
+Instagram:      "المنصة: إنستغرام. اكتب وصفاً حماسياً من 130-180 كلمة مع فواصل
+                أسطر و2-4 إيموجي. الدعوة لاتخاذ إجراء: افتح FitAI على
+                تيليجرام. 8-10 وسمات في مجال اللياقة."
 
-Facebook:       "Write one engaging post of 100-150 words with a conversational
-                tone. End with one clear question that sparks comments and one
-                soft call-to-action. 3-5 hashtags."
+Facebook:       "المنصة: فيسبوك. اكتب منشوراً جذاباً من 100-150 كلمة بنبرة
+                حوارية. اختم بسؤال واحد يشجع التفاعل ودعوة لطيفة لاتخاذ
+                إجراء. 3-5 وسمات."
 
-TikTok:         "Write one short punchy caption under 140 characters, hook
-                first. 4-6 hashtags including one trending fitness tag."
+TikTok:         "المنصة: تيك توك. اكتب وصفاً قصيراً مؤثراً أقل من 140 حرفاً،
+                ابدأ بالجملة الأقوى. 4-6 وسمات منها وسم لياقة رائج."
 ```
 
 Generation parameters: `max_new_tokens: 220, temperature: 0.85, do_sample: true,
@@ -108,25 +115,28 @@ return_full_text: false`.
 
 The reply is parsed as JSON with a graceful fallback: if the model returns
 plain text, the whole text becomes the caption and `#hashtags` are extracted
-with a regex scan. **Every caption is post-processed to guarantee the app link**
-`https://t.me/FitAI_Training_bot` is present (appended if the model missed it;
-X captions are trimmed to stay within the character budget). Override the link
-with `APP_URL`.
+with a regex scan (Arabic tags supported). **Every caption is post-processed
+to guarantee the app link** `https://t.me/FitAI_Training_bot` is present
+(appended if the model missed it; X captions are trimmed to stay within the
+character budget). Override the link with `APP_URL`.
+
+Defaults (`MARKETING_THEME` / `MARKETING_TOPIC` overridable):
+`تحول لياقي خلال 30 يوماً` · `تمارين منزلية سريعة بدون معدات`.
 
 ---
 
-## 3. Image prompt
+## 3. Image prompt (Arabic)
 
 ```text
-Cinematic fitness photograph, <theme> featuring <topic>,
-dominant accent color <brandColor> on training apparel, gym equipment and rim lighting,
-moody dark background, dramatic rim light, shallow depth of field, 35mm lens,
-ultra high resolution, professional sports advertising aesthetic,
-no text, no watermark, no logo
+صورة لياقة سينمائية احترافية، <theme> تعرض <topic>،
+مع لون مميز طاغٍ <brandColor> على ملابس التمرين وأدوات الجيم والإضاءة الخلفية،
+خلفية داكنة بمزاج درامي، إضاءة حافة درامية، عمق ميدان ضحل، عدسة 35مم،
+دقة فائقة، طابع إعلان رياضي احترافي،
+بدون نصوص، بدون علامة مائية، بدون شعار
 ```
 
-- `<theme>` — e.g. `30-day fitness transformation`
-- `<topic>` — e.g. `quick home workouts, no equipment`
+- `<theme>` — e.g. `تحول لياقي خلال 30 يوماً`
+- `<topic>` — e.g. `تمارين منزلية سريعة بدون معدات`
 - `<brandColor>` — default `#d7f26d` (FitAI chartreuse), overridable per run
   via `generateCampaign({ brandColor: "#..." })`.
 
@@ -158,34 +168,33 @@ capped by Convex's action timeout).
 ### The marketing angle (the point of the clip)
 
 The clip must **market FitAI itself — its value proposition — not a gym promo
-or a workout demonstration**. Each campaign draws one angle from a rotating
-pool of pain→value pairs ("mix for marketing"), so consecutive drops stay
-fresh. The pool:
+or a workout demonstration**. The prompt is written **in Arabic** so the
+scenes, people and lifestyle feel native to the Arabic audience. Each campaign
+draws one angle from a rotating pool of pain→value pairs ("mix for marketing"),
+so consecutive drops stay fresh. The pool:
 
-| # | Pain (story opening) | Value (resolution — what FitAI delivers) |
+| # | الألم (افتتاحية القصة) | القيمة (الحل — ما يقدمه FitAI) |
 | --- | --- | --- |
-| 1 | Busy professional, no time for the gym | Personal plan in minutes, fits any schedule, inside Telegram |
-| 2 | Generic one-size-fits-all plans never work | Plan built from your goal, level and timeline, adapted by AI |
-| 3 | Trainers and memberships are too expensive | An AI coach in your pocket for a fraction of the cost |
-| 4 | Motivation dies after week one | Streaks + progress charts keep you going |
-| 5 | Beginners don't know which exercises to do | Step-by-step images and instructions for every exercise |
-| 6 | Training without knowing if you're improving | Day/week/month progress analytics |
+| 1 | شخص مشغول بلا وقت للنادي ويشعر بالذنب | خطة شخصية خلال دقائق تناسب جدولك، داخل تيليجرام |
+| 2 | الخطط الجاهزة الموحّدة لا تناسب جسدك | خطة من هدفك ومستواك وجدولك، يطوّرها الذكاء الاصطناعي |
+| 3 | المدربون واشتراكات النادي مكلفة | مدرب ذكاء اصطناعي في جيبك بجزء بسيط من التكلفة |
+| 4 | الحماس يموت بعد الأسبوع الأول | سلاسل إنجاز ورسوم بيانية تبقيك مستمراً |
+| 5 | المبتدئ لا يعرف أي تمرين يناسبه | صور وتعليمات خطوة بخطوة لكل تمرين |
+| 6 | تتمرن دون أن تعرف إن كنت تتحسن | تحليلات تقدم يومية وأسبوعية وشهرية |
 
-### Assembled prompt
+### Assembled prompt (Arabic)
 
 ```text
-Vertical 9:16 marketing video for FitAI, an AI-powered fitness coach mini app
-on Telegram that builds personalized workout plans, tracks daily progress and
-costs less than a gym membership.
-Story: <pain>.
-Then show the resolution — <value>.
-Campaign topic: <topic>. Campaign theme: <theme>.
-Visual style: cinematic, high-energy, moody dark background with lime-chartreuse
-#d7f26d accents, a hand holding a phone with the app open, modern and
-aspirational, fast-paced cuts, realistic people.
-This is app marketing, not a gym promo: show the lifestyle pain turning into
-relief through the app — do not show a generic gym workout demonstration.
-No text, no captions, no watermark, no logos in the frame.
+فيديو تسويقي عمودي 9:16 لتطبيق FitAI، مدرب لياقة ذكي داخل تيليجرام يبني خططاً
+تدريبية شخصية ويتتبع تقدمك اليومي بتكلفة أقل من اشتراك النادي.
+القصة: <pain>.
+ثم أظهر الحل — <value>.
+موضوع الحملة: <topic>. فكرة الحملة: <theme>.
+الأسلوب البصري: سينمائي، طاقة عالية، خلفية داكنة بلمسات ليمونية بلون #d7f26d،
+يد تحمل هاتفاً يعرض التطبيق، طابع عصري طموح، لقطات متسارعة، أشخاص واقعيون.
+هذا تسويق للتطبيق وليس إعلاناً لنادٍ رياضي: أظهر ألم الحياة اليومية يتحول إلى
+راحة عبر التطبيق — لا تعرض عرضاً عاماً لتمارين الجيم.
+بدون نصوص، بدون كتابات، بدون علامة مائية أو شعارات داخل الإطار.
 ```
 
 If the workflow fails, the step logs the error and the campaign continues with
@@ -226,7 +235,8 @@ automatically.
 
 - `sendPhoto` with the campaign image + caption (caption truncated to 900
   chars) and the app link (`APP_URL`, default `https://t.me/FitAI_Training_bot`)
-  appended; `sendMessage` fallback when there is no image.
+  appended; `sendMessage` fallback `🔥 جديد من FitAI 👉 <link>` when there is no
+  image. Captions are Arabic like every other piece of marketing content.
 - Batching: **25 users/second** (`Promise.allSettled` per 25-user batch, then a
   1s pause) — safely under Telegram's ~30 messages/sec global limit.
 - Progress checkpoints are written to the campaign after every batch.

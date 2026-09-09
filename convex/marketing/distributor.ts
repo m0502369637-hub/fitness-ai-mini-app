@@ -406,7 +406,7 @@ async function sendToUser(
     baseCaption.length > TELEGRAM_CAPTION_LIMIT
       ? `${baseCaption.slice(0, TELEGRAM_CAPTION_LIMIT)}…`
       : baseCaption;
-  const text = caption ? `${caption}\n\n👉 ${appLink}` : `🔥 New drop from FitAI 👉 ${appLink}`;
+  const text = caption ? `${caption}\n\n👉 ${appLink}` : `🔥 جديد من FitAI 👉 ${appLink}`;
 
   if (campaign.imageUrl) {
     const res = await fetch(telegramApi(token, "sendPhoto"), {

@@ -242,47 +242,51 @@ function normalizePlatforms(raw: string[] | undefined): string[] {
 // Prompts (the canonical copies live in convex/marketing/PROMPTS.md)
 // ---------------------------------------------------------------------------
 
+// All marketing content is produced in Arabic (Modern Standard Arabic with a
+// light, energetic tone). Captions, hashtags and the video prompt below are
+// the canonical copies — see convex/marketing/PROMPTS.md.
+
 const TEXT_SYSTEM_PROMPT = [
-  "You are a senior social media copywriter for FitAI, a free fitness mini app on Telegram.",
-  "Brand voice: energetic, bold, zero fluff, motivating but never preachy.",
-  "You write platform-native copy, not generic text.",
-  "Do not think out loud and do not include reasoning — output the JSON immediately.",
-  "Reply with strict JSON only: {\"caption\":\"...\",\"hashtags\":[\"...\"]}.",
+  "أنت كاتب محتوى تسويقي محترف لتطبيق FitAI، تطبيق لياقة مجاني داخل تيليجرام.",
+  "نبرة العلامة: حماسية، جريئة، مباشرة، محفّزة دون وعظ.",
+  "تكتب بالعربية الفصحى الواضحة بأسلوب يناسب كل منصة.",
+  "لا تكتب أي تفكير أو شرح — أخرج JSON فوراً.",
+  'أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]}.',
 ].join(" ");
 
 const PLATFORM_TEXT_INSTRUCTIONS: Record<string, string> = {
-  x: "Platform: X (Twitter). Write one viral post, maximum 250 characters. Start with a scroll-stopping hook. 2-3 hashtags only.",
+  x: "المنصة: إكس (تويتر). اكتب منشوراً واحداً سريع الانتشار بحد أقصى 250 حرفاً. ابدأ بجملة افتتاحية تلفت الانتباه. 2-3 وسمات فقط.",
   facebook:
-    "Platform: Facebook. Write one engaging post of 100-150 words with a conversational tone. End with one clear question that sparks comments and one soft call-to-action. 3-5 hashtags.",
+    "المنصة: فيسبوك. اكتب منشوراً جذاباً من 100-150 كلمة بنبرة حوارية. اختم بسؤال واحد يشجع التفاعل ودعوة لطيفة لاتخاذ إجراء. 3-5 وسمات.",
   linkedin:
-    "Platform: LinkedIn. Write one professional post of 800-1100 characters. Story-driven opening line, then three short value bullets, one soft call-to-action. 3 hashtags.",
+    "المنصة: لينكدإن. اكتب منشوراً احترافياً من 800-1100 حرف. افتتاحية قائمة على قصة، ثم ثلاث نقاط قيمة مختصرة، ثم دعوة لطيفة لاتخاذ إجراء. 3 وسمات.",
   instagram:
-    "Platform: Instagram. Write one energetic caption of 130-180 words with line breaks and 2-4 emojis. Call to action: open FitAI on Telegram. 8-10 hashtags, fitness niche.",
+    "المنصة: إنستغرام. اكتب وصفاً حماسياً من 130-180 كلمة مع فواصل أسطر و2-4 إيموجي. الدعوة لاتخاذ إجراء: افتح FitAI على تيليجرام. 8-10 وسمات في مجال اللياقة.",
   tiktok:
-    "Platform: TikTok. Write one short punchy caption under 140 characters, hook first. 4-6 hashtags including one trending fitness tag.",
+    "المنصة: تيك توك. اكتب وصفاً قصيراً مؤثراً أقل من 140 حرفاً، ابدأ بالجملة الأقوى. 4-6 وسمات منها وسم لياقة رائج.",
 };
 
 function textUserPrompt(platform: string, theme: string, topic: string, brandColor: string): string {
   return [
     PLATFORM_TEXT_INSTRUCTIONS[platform],
-    `Campaign theme: ${theme}.`,
-    `Focus topic: ${topic}.`,
-    `Brand accent color: ${brandColor} (mention it only if it fits naturally).`,
-    "Mention lightly that FitAI is a free Telegram mini app.",
-    "Always end the caption with the app link: https://t.me/FitAI_Training_bot. Keep within the platform length limit.",
-    'Reply with ONLY a JSON object: {"caption":"...","hashtags":["..."]}. No markdown fences.',
+    `موضوع الحملة: ${theme}.`,
+    `الموضوع المركّز: ${topic}.`,
+    `لون العلامة المميز: ${brandColor} (اذكره فقط إن كان مناسباً).`,
+    "اذكر بشكل خفيف أن FitAI تطبيق تيليجرام مجاني.",
+    "اختم الوصف دائماً برابط التطبيق: https://t.me/FitAI_Training_bot مع الالتزام بحد الطول لكل منصة.",
+    'أجب بـ JSON فقط: {"caption":"...","hashtags":["..."]} بدون أي تنسيق إضافي.',
   ].join("\n");
 }
 
 function imagePrompt(theme: string, topic: string, brandColor: string): string {
   return [
-    "Cinematic fitness photograph,",
+    "صورة لياقة سينمائية احترافية،",
     theme,
-    `featuring ${topic},`,
-    `dominant accent color ${brandColor} on training apparel, gym equipment and rim lighting,`,
-    "moody dark background, dramatic rim light, shallow depth of field, 35mm lens,",
-    "ultra high resolution, professional sports advertising aesthetic,",
-    "no text, no watermark, no logo",
+    `تعرض ${topic}،`,
+    `مع لون مميز طاغٍ ${brandColor} على ملابس التمرين وأدوات الجيم والإضاءة الخلفية،`,
+    "خلفية داكنة بمزاج درامي، إضاءة حافة درامية، عمق ميدان ضحل، عدسة 35مم،",
+    "دقة فائقة، طابع إعلان رياضي احترافي،",
+    "بدون نصوص، بدون علامة مائية، بدون شعار",
   ].join(" ");
 }
 
@@ -426,28 +430,28 @@ type MarketingAngle = { pain: string; value: string };
 
 const MARKETING_ANGLES: MarketingAngle[] = [
   {
-    pain: "A busy professional has no time for the gym and feels guilty about it",
-    value: "FitAI builds a personal plan in minutes that fits any schedule, right inside Telegram",
+    pain: "شخص مشغول بلا وقت للنادي ويشعر بالذنب",
+    value: "FitAI يبني لك خطة شخصية خلال دقائق تناسب جدولك، داخل تيليجرام مباشرة",
   },
   {
-    pain: "Generic one-size-fits-all workout plans never work for a real body",
-    value: "FitAI creates a plan from your goal, level and timeline — and the AI adapts it as you go",
+    pain: "الخطط الجاهزة الموحّدة لا تناسب جسدك الحقيقي",
+    value: "FitAI يبني خطتك من هدفك ومستواك وجدولك الزمني — والذكاء الاصطناعي يطوّرها معك",
   },
   {
-    pain: "Personal trainers and gym memberships are too expensive",
-    value: "FitAI is an AI coach in your pocket for a fraction of the cost",
+    pain: "المدربون الشخصيون واشتراكات النادي مكلفة للغاية",
+    value: "FitAI مدرب ذكاء اصطناعي في جيبك بجزء بسيط من التكلفة",
   },
   {
-    pain: "Motivation dies after week one and progress disappears",
-    value: "FitAI tracks every workout with streaks and progress charts that keep you going",
+    pain: "الحماس يموت بعد الأسبوع الأول ويختفي التقدم",
+    value: "FitAI يتتبع كل تمرين بسلاسل إنجاز ورسوم بيانية تبقيك مستمراً",
   },
   {
-    pain: "Beginners don't know which exercises to do or how to do them",
-    value: "FitAI shows every exercise with step-by-step images and instructions",
+    pain: "المبتدئ لا يعرف أي تمرين يناسبه أو كيف يؤديه",
+    value: "FitAI يعرض كل تمرين بصور وتعليمات خطوة بخطوة",
   },
   {
-    pain: "You train regularly but never know if you are actually improving",
-    value: "FitAI turns every session into day/week/month progress analytics you can see",
+    pain: "تتمرن باستمرار لكنك لا تعرف إن كنت تتحسن فعلاً",
+    value: "FitAI يحوّل كل جلسة إلى تحليلات تقدم يومية وأسبوعية وشهرية تراها بعينك",
   },
 ];
 
@@ -459,14 +463,14 @@ function pickMarketingAngle(): MarketingAngle {
 function videoMarketingPrompt(theme: string, topic: string): string {
   const angle = pickMarketingAngle();
   return [
-    "Vertical 9:16 marketing video for FitAI, an AI-powered fitness coach mini app on Telegram that builds personalized workout plans, tracks daily progress and costs less than a gym membership.",
-    `Story: ${angle.pain}.`,
-    `Then show the resolution — ${angle.value}.`,
-    topic ? `Campaign topic: ${topic}.` : "",
-    theme ? `Campaign theme: ${theme}.` : "",
-    "Visual style: cinematic, high-energy, moody dark background with lime-chartreuse #d7f26d accents, a hand holding a phone with the app open, modern and aspirational, fast-paced cuts, realistic people.",
-    "This is app marketing, not a gym promo: show the lifestyle pain turning into relief through the app — do not show a generic gym workout demonstration.",
-    "No text, no captions, no watermark, no logos in the frame.",
+    "فيديو تسويقي عمودي 9:16 لتطبيق FitAI، مدرب لياقة ذكي داخل تيليجرام يبني خططاً تدريبية شخصية ويتتبع تقدمك اليومي بتكلفة أقل من اشتراك النادي.",
+    `القصة: ${angle.pain}.`,
+    `ثم أظهر الحل — ${angle.value}.`,
+    topic ? `موضوع الحملة: ${topic}.` : "",
+    theme ? `فكرة الحملة: ${theme}.` : "",
+    "الأسلوب البصري: سينمائي، طاقة عالية، خلفية داكنة بلمسات ليمونية بلون #d7f26d، يد تحمل هاتفاً يعرض التطبيق، طابع عصري طموح، لقطات متسارعة، أشخاص واقعيون.",
+    "هذا تسويق للتطبيق وليس إعلاناً لنادٍ رياضي: أظهر ألم الحياة اليومية يتحول إلى راحة عبر التطبيق — لا تعرض عرضاً عاماً لتمارين الجيم.",
+    "بدون نصوص، بدون كتابات، بدون علامة مائية أو شعارات داخل الإطار.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -719,8 +723,8 @@ export const generateCampaign = action({
       return { ok: false, reason: "NOT_MARKETING_DAY" };
     }
 
-    const theme = args.theme ?? process.env.MARKETING_THEME ?? "30-day fitness transformation";
-    const topic = args.topic ?? process.env.MARKETING_TOPIC ?? "quick home workouts, no equipment";
+    const theme = args.theme ?? process.env.MARKETING_THEME ?? "تحول لياقي خلال 30 يوماً";
+    const topic = args.topic ?? process.env.MARKETING_TOPIC ?? "تمارين منزلية سريعة بدون معدات";
     const brandColor = args.brandColor ?? process.env.MARKETING_BRAND_COLOR ?? DEFAULT_BRAND_COLOR;
     const platforms = normalizePlatforms(args.platforms);
 
