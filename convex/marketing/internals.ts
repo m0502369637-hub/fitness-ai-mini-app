@@ -248,8 +248,10 @@ export const getDistribution = internalQuery({
 
 /**
  * Campaigns whose stored files are eligible for deletion:
- *  - "completed" campaigns older than 24h after completion (the spec), plus
- *  - "failed" campaigns older than 48h (partial assets from broken runs).
+ *  - "completed" campaigns older than 24h after completion (the spec),
+ *  - "failed" campaigns older than 48h (partial assets from broken runs),
+ *  - campaigns stuck in a non-final state ("queued"/"generating"/"distributing")
+ *    for over 48h (e.g. the action was killed mid-run).
  * The newest completed campaign is always exempt: it is the source material
  * for daily repurposing on non-generation days, so its image/video must
  * survive until a newer campaign supersedes it.
@@ -265,7 +267,17 @@ export const listCleanupCandidates = internalQuery({
       .query("marketingCampaigns")
       .withIndex("by_status", (q) => q.eq("status", "failed"))
       .collect();
+    const staleStatuses = ["queued", "generating", "distributing"] as const;
+    const stale: Doc<"marketingCampaigns">[] = [];
+    for (const status of staleStatuses) {
+      const rows = await ctx.db
+        .query("marketingCampaigns")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .collect();
+      stale.push(...rows);
+    }
     const failedCutoff = cutoffMs - 24 * 60 * 60 * 1000;
+    const staleCutoff = cutoffMs - 24 * 60 * 60 * 1000;
     const latestCompleted = completed.sort((a, b) => b._creationTime - a._creationTime)[0];
     return [
       ...completed.filter(
@@ -275,6 +287,7 @@ export const listCleanupCandidates = internalQuery({
           c._id !== latestCompleted?._id,
       ),
       ...failed.filter((c) => c.createdAt <= failedCutoff),
+      ...stale.filter((c) => c.createdAt <= staleCutoff),
     ].map((c) => ({ _id: c._id, theme: c.theme, status: c.status }));
   },
 });

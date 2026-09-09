@@ -20,7 +20,7 @@
 // this module free of self-referential `internal.*` imports.
 
 import { v } from "convex/values";
-import { action, ActionCtx, query } from "../_generated/server";
+import { action, ActionCtx, mutation, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { chatCompletion, routeModel } from "../lib/models";
@@ -520,49 +520,32 @@ function collectVideoUrls(node: unknown, out: string[], inVideoKey = false): voi
 }
 
 /**
- * Parse the workflow stream body. fal stream endpoints emit NDJSON (one JSON
- * event per line) and occasionally SSE-style `data:` frames; the whole body
- * may also be a single JSON document. We scan every parsed event for a video
- * URL and surface any `error`/`detail` the workflow reports.
+ * Parse ONE workflow stream event (a single JSON line, possibly an SSE
+ * `data:` frame). Returns the error or the newest video URL found in it.
  */
-function parseFalStream(text: string): { videoUrl?: string; error?: string; events: number } {
-  const parsed: unknown[] = [];
-  const videoUrls: string[] = [];
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    let chunk = line.startsWith("data:") ? line.slice(5).trim() : line;
-    if (!chunk || chunk === "[DONE]") continue;
-    try {
-      parsed.push(JSON.parse(chunk));
-    } catch {
-      // Non-JSON progress line — ignore.
-    }
+function parseFalEvent(chunk: string): { videoUrl?: string; error?: string } {
+  let event: unknown;
+  try {
+    event = JSON.parse(chunk);
+  } catch {
+    return {}; // non-JSON progress/keepalive line
   }
-  if (parsed.length === 0) {
-    try {
-      parsed.push(JSON.parse(text));
-    } catch {
-      // Not JSON at all — handled below as "no video url".
-    }
+  if (event && typeof event === "object") {
+    const record = event as Record<string, unknown>;
+    const rawError = record.error ?? record.detail;
+    const error =
+      typeof rawError === "string"
+        ? rawError
+        : rawError && typeof rawError === "object" && typeof (rawError as Record<string, unknown>).message === "string"
+          ? ((rawError as Record<string, unknown>).message as string)
+          : undefined;
+    if (error) return { error };
+    const urls: string[] = [];
+    collectVideoUrls(event, urls);
+    const videoUrl = urls[urls.length - 1]; // last URL in this event wins
+    if (videoUrl) return { videoUrl };
   }
-  for (const event of parsed) {
-    if (event && typeof event === "object") {
-      const record = event as Record<string, unknown>;
-      const rawError = record.error ?? record.detail;
-      const error =
-        typeof rawError === "string"
-          ? rawError
-          : rawError && typeof rawError === "object" && typeof (rawError as Record<string, unknown>).message === "string"
-            ? ((rawError as Record<string, unknown>).message as string)
-            : undefined;
-      if (error) return { error, events: parsed.length };
-      collectVideoUrls(event, videoUrls);
-    }
-  }
-  const unique = [...new Set(videoUrls)];
-  const videoUrl = unique.pop(); // the last one is usually the final output
-  return videoUrl ? { videoUrl, events: parsed.length } : { events: parsed.length };
+  return {};
 }
 
 async function falWorkflowGenerateVideo(prompt: string): Promise<Media> {
@@ -571,19 +554,77 @@ async function falWorkflowGenerateVideo(prompt: string): Promise<Media> {
     throw new Error("FAL_API_KEY is not set — the fal.ai workflow needs it (https://fal.ai)");
   }
   const endpoint = process.env.FAL_WORKFLOW_ENDPOINT ?? DEFAULT_FAL_WORKFLOW_ENDPOINT;
-  // Convex actions have a ~10-minute budget; leave room for download + storage.
+  // Convex actions are capped at 64 MB of memory AND ~10 minutes of wall time.
+  // The timeout covers the entire streaming body read, and the stream is
+  // parsed line by line (NDJSON / SSE) without buffering the whole response.
   const timeoutMs = Number(process.env.FAL_WORKFLOW_TIMEOUT_MS ?? "540000");
+  // Drop frames larger than this instead of letting them exhaust memory
+  // (e.g. a workflow that embeds base64 media in a progress event).
+  const MAX_FRAME_BYTES = 8 * 1024 * 1024;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let res: Response;
   try {
-    res = await fetch(endpoint, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
       signal: controller.signal,
     });
+    if (!res.ok) {
+      throw new Error(`fal workflow ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) {
+      // No streaming body (unusual) — parse it as one event.
+      const parsed = parseFalEvent(await res.text());
+      if (parsed.error) throw new Error(`fal workflow error: ${parsed.error.slice(0, 300)}`);
+      if (!parsed.videoUrl) throw new Error("fal workflow completed without a video url");
+      return await downloadWorkflowVideo(parsed.videoUrl);
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let skipping = false; // currently dropping an oversized frame
+    let videoUrl: string | undefined;
+    let error: string | undefined;
+    let events = 0;
+
+    const handleLine = (rawLine: string) => {
+      const line = rawLine.trim();
+      if (!line) return;
+      let chunk = line.startsWith("data:") ? line.slice(5).trim() : line;
+      if (!chunk || chunk === "[DONE]") return;
+      events++;
+      const parsed = parseFalEvent(chunk);
+      if (parsed.error) error = parsed.error;
+      if (parsed.videoUrl) videoUrl = parsed.videoUrl; // last URL wins
+    };
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      if (!skipping && buffer.length > MAX_FRAME_BYTES) skipping = true;
+      let nl: number;
+      while ((nl = buffer.indexOf("\n")) !== -1) {
+        const rawLine = buffer.slice(0, nl);
+        buffer = buffer.slice(nl + 1);
+        if (!skipping) handleLine(rawLine);
+        skipping = false;
+      }
+      // While skipping an oversized frame, keep the buffer from growing.
+      if (skipping && buffer.length > MAX_FRAME_BYTES) buffer = "";
+    }
+    buffer += decoder.decode(); // flush multibyte tail
+    if (buffer.trim()) handleLine(buffer);
+
+    if (error) throw new Error(`fal workflow error: ${error.slice(0, 300)}`);
+    if (!videoUrl) {
+      throw new Error(`fal workflow completed without a video url (${events} events parsed)`);
+    }
+    return await downloadWorkflowVideo(videoUrl);
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
       throw new Error(`fal workflow timed out after ${timeoutMs}ms`);
@@ -592,17 +633,11 @@ async function falWorkflowGenerateVideo(prompt: string): Promise<Media> {
   } finally {
     clearTimeout(timer);
   }
-  if (!res.ok) {
-    throw new Error(`fal workflow ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
-  }
-  const parsed = parseFalStream(await res.text());
-  if (parsed.error) {
-    throw new Error(`fal workflow error: ${parsed.error.slice(0, 300)}`);
-  }
-  if (!parsed.videoUrl) {
-    throw new Error(`fal workflow completed without a video url (${parsed.events} events parsed)`);
-  }
-  const videoRes = await fetch(parsed.videoUrl);
+}
+
+/** Download the finished clip and return its bytes. */
+async function downloadWorkflowVideo(videoUrl: string): Promise<Media> {
+  const videoRes = await fetch(videoUrl);
   if (!videoRes.ok) throw new Error(`fal video download ${videoRes.status}`);
   const bytes = await videoRes.arrayBuffer();
   if (bytes.byteLength === 0) throw new Error("fal video download returned 0 bytes");
@@ -699,6 +734,30 @@ export const getCampaign = query({
   args: { campaignId: v.id("marketingCampaigns") },
   handler: async (ctx, { campaignId }) => {
     return await ctx.db.get(campaignId);
+  },
+});
+
+/**
+ * Cancel a campaign before distribution: marks it "failed" so the distributor
+ * never picks it up (the nightly cleanup will sweep its assets later).
+ * Used to retire stale/undesired campaigns from the CLI or dashboard.
+ */
+export const cancelCampaign = mutation({
+  args: {
+    campaignId: v.id("marketingCampaigns"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign) return { ok: false, reason: "NOT_FOUND" };
+    if (campaign.status === "completed" || campaign.status === "failed") {
+      return { ok: false, reason: "ALREADY_FINAL" };
+    }
+    await ctx.db.patch(args.campaignId, {
+      status: "failed",
+      error: args.reason ?? "Cancelled by admin",
+    });
+    return { ok: true };
   },
 });
 

@@ -283,6 +283,7 @@ triggers ignore the calendar and run any day:
 npx convex run marketing/generator:generateCampaign '{}' --prod
 npx convex run marketing/distributor:runDistribution '{}' --prod               # latest ready campaign
 npx convex run marketing/distributor:runDistribution '{repurpose:true}' --prod # force daily repurpose
+npx convex run marketing/generator:cancelCampaign '{campaignId:"<id>", reason:"..."}' --prod  # retire a campaign before it posts
 npx convex run marketing/cleaner:cleanupOldAssets '{}' --prod
 ```
 
