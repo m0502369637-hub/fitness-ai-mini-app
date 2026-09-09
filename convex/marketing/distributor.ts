@@ -101,6 +101,39 @@ function captionFor(campaign: Doc<"marketingCampaigns">, platform: string): stri
 }
 
 // ---------------------------------------------------------------------------
+// Daily repurposing — same assets, fresh-looking text
+// ---------------------------------------------------------------------------
+//
+// On non-generation days the engine reposts the latest campaign. Identical
+// consecutive text is rejected by some platforms (e.g. X "duplicate content"),
+// so each repurpose day prepends a rotating Arabic hook — the caption below it
+// stays the platform-native one.
+
+const REPURPOSE_HOOKS = [
+  "🚀 جاهز تبدأ؟",
+  "💪 اليوم أفضل وقت",
+  "🔥 لا تؤجل رحلتك",
+  "⚡ ابدأ الآن",
+  "🎯 هدفك يبدأ اليوم",
+  "✨ نسختك الأفضل تنتظرك",
+];
+
+/** Rotate a hook prefix by the calendar day so consecutive drops differ. */
+function varyCaption(caption: string): string {
+  const dayIndex = Math.floor(Date.now() / 86_400_000) % REPURPOSE_HOOKS.length;
+  return `${REPURPOSE_HOOKS[dayIndex]}\n\n${caption}`;
+}
+
+/** A campaign view whose captions carry the repurpose-day hooks. */
+function repurposedCampaign(campaign: Doc<"marketingCampaigns">): Doc<"marketingCampaigns"> {
+  const captions: Record<string, string> = {};
+  for (const [platform, caption] of Object.entries(campaign.captions)) {
+    captions[platform] = varyCaption(caption);
+  }
+  return { ...campaign, captions };
+}
+
+// ---------------------------------------------------------------------------
 // Composio (external channels)
 // ---------------------------------------------------------------------------
 
@@ -443,23 +476,34 @@ export const runDistribution = action({
     // When set by the daily cron, distribution only runs on marketing days
     // (Tue/Thu/Sat Riyadh). Manual runs leave it unset and always execute.
     respectSchedule: v.optional(v.boolean()),
+    // Daily repurposing: when there is no freshly generated ("ready") campaign,
+    // repost the latest completed one with rotated hook prefixes instead of
+    // doing nothing. Keeps content flowing every day while generation stays
+    // at 3×/week to save money.
+    repurpose: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<DistributionResult> => {
     if (process.env.MARKETING_ENABLED !== "true") {
       return { ok: false, reason: "MARKETING_DISABLED" };
     }
-    // Three drops a week: Tue / Thu / Sat (Riyadh). The cron fires daily and
-    // passes respectSchedule so other days become a no-op.
+    // Legacy guard: the distribution cron no longer passes respectSchedule
+    // (it now runs every day); kept so the flag still behaves as documented.
     if (args.respectSchedule && !isMarketingDay()) {
       return { ok: false, reason: "NOT_MARKETING_DAY" };
     }
 
-    const campaign = args.campaignId
+    let campaign = args.campaignId
       ? await ctx.runQuery(internal.marketing.internals.getCampaign, { campaignId: args.campaignId })
       : await ctx.runQuery(internal.marketing.internals.getLatestReadyCampaign, {});
+    let isRepurpose = false;
+    if (!campaign && args.repurpose) {
+      // No fresh drop waiting — repurpose the latest completed campaign.
+      campaign = await ctx.runQuery(internal.marketing.internals.getLatestCompletedCampaign, {});
+      isRepurpose = true;
+    }
     if (!campaign) return { ok: false, reason: "NO_READY_CAMPAIGN" };
     if (campaign.status === "distributing") return { ok: false, reason: "ALREADY_DISTRIBUTING" };
-    if (campaign.status === "completed" && !args.force) {
+    if (campaign.status === "completed" && !args.force && !isRepurpose) {
       return {
         ok: true,
         campaignId: campaign._id,
@@ -469,11 +513,19 @@ export const runDistribution = action({
     }
 
     const campaignId = campaign._id;
+    // The campaign view used for posting: repurpose days get rotated hooks.
+    const working = isRepurpose ? repurposedCampaign(campaign) : campaign;
     const log = (level: LogLevel, source: string, message: string) =>
       ctx.runMutation(internal.marketing.internals.log, { campaignId, level, source, message });
 
     await ctx.runMutation(internal.marketing.internals.markDistributing, { campaignId });
-    await log("info", "distributor", `Distribution started for "${campaign.theme}"`);
+    await log(
+      "info",
+      "distributor",
+      isRepurpose
+        ? `Repurposing latest campaign "${campaign.theme}" (daily repost, rotated hooks)`
+        : `Distribution started for "${campaign.theme}"`,
+    );
     const results: Record<string, ChannelOutcome> = {};
 
     // ---- 1) External platforms via Composio (isolated per platform) ---------
@@ -484,31 +536,34 @@ export const runDistribution = action({
       }
     } else {
       for (const platform of campaign.platforms) {
-        // Force re-runs skip channels that already succeeded (no duplicate posts).
-        const existing = await ctx.runQuery(internal.marketing.internals.getDistribution, {
-          campaignId,
-          platform,
-        });
+        // Force re-runs skip channels that already succeeded (no duplicate
+        // posts) — except on repurpose days, where re-posting IS the point.
+        const existing = isRepurpose
+          ? null
+          : await ctx.runQuery(internal.marketing.internals.getDistribution, {
+              campaignId,
+              platform,
+            });
         if (existing?.status === "sent") {
           results[platform] = { status: "sent" };
           await log("info", `distributor.${platform}`, "Already posted — skipped on force re-run");
           continue;
         }
         try {
-          await postToPlatform(platform, campaign);
+          await postToPlatform(platform, working);
           results[platform] = { status: "sent" };
         } catch (e) {
           // X fallbacks: text-only via Composio, then the direct X API (OAuth 1.0a).
-          if (platform === "x" && campaign.imageUrl) {
+          if (platform === "x" && working.imageUrl) {
             try {
               const postSlug = getToolSlug("x");
               if (!postSlug) throw new Error("No Composio tool configured for x");
-              await runComposioTool("x", postSlug, { text: captionFor(campaign, "x") });
+              await runComposioTool("x", postSlug, { text: captionFor(working, "x") });
               results[platform] = { status: "sent" };
               await log("warn", "distributor.x", "Media tweet failed — posted text-only fallback");
             } catch (e2) {
               try {
-                await postToXDirect(campaign);
+                await postToXDirect(working);
                 results[platform] = { status: "sent" };
                 await log("warn", "distributor.x", "Composio X failed — posted via the direct X API");
               } catch (e3) {
@@ -517,7 +572,7 @@ export const runDistribution = action({
             }
           } else if (platform === "x") {
             try {
-              await postToXDirect(campaign);
+              await postToXDirect(working);
               results[platform] = { status: "sent" };
               await log("warn", "distributor.x", "Composio X failed — posted via the direct X API");
             } catch (e2) {
@@ -542,10 +597,12 @@ export const runDistribution = action({
 
     // ---- 2) Internal broadcast to all users (Telegram, 25 users/sec) --------
     let telegram: TelegramStats;
-    const telegramExisting = await ctx.runQuery(internal.marketing.internals.getDistribution, {
-      campaignId,
-      platform: "telegram",
-    });
+    const telegramExisting = isRepurpose
+      ? null
+      : await ctx.runQuery(internal.marketing.internals.getDistribution, {
+          campaignId,
+          platform: "telegram",
+        });
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (telegramExisting?.status === "sent") {
       await log("info", "distributor.telegram", "Already broadcast — skipped on force re-run");
@@ -565,7 +622,7 @@ export const runDistribution = action({
       for (let i = 0; i < users.length; i += TELEGRAM_BATCH_SIZE) {
         const batch = users.slice(i, i + TELEGRAM_BATCH_SIZE);
         const outcomes = await Promise.allSettled(
-          batch.map((u) => sendToUser(botToken, u.tgId, campaign)),
+          batch.map((u) => sendToUser(botToken, u.tgId, working)),
         );
         for (const outcome of outcomes) {
           if (outcome.status === "fulfilled") sent++;

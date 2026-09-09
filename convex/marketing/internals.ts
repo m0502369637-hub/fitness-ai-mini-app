@@ -121,6 +121,22 @@ export const getLatestReadyCampaign = internalQuery({
   },
 });
 
+/**
+ * Newest campaign that has already been distributed — the source material for
+ * daily repurposing on non-generation days (repost the latest drop instead of
+ * paying for a fresh one).
+ */
+export const getLatestCompletedCampaign = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("marketingCampaigns")
+      .withIndex("by_status", (q) => q.eq("status", "completed"))
+      .order("desc")
+      .first();
+  },
+});
+
 /** Every app user (paginated) — the internal Telegram broadcast audience. */
 export const listAllUsers = internalQuery({
   args: {},
@@ -234,6 +250,9 @@ export const getDistribution = internalQuery({
  * Campaigns whose stored files are eligible for deletion:
  *  - "completed" campaigns older than 24h after completion (the spec), plus
  *  - "failed" campaigns older than 48h (partial assets from broken runs).
+ * The newest completed campaign is always exempt: it is the source material
+ * for daily repurposing on non-generation days, so its image/video must
+ * survive until a newer campaign supersedes it.
  */
 export const listCleanupCandidates = internalQuery({
   args: { cutoffMs: v.number() },
@@ -247,8 +266,14 @@ export const listCleanupCandidates = internalQuery({
       .withIndex("by_status", (q) => q.eq("status", "failed"))
       .collect();
     const failedCutoff = cutoffMs - 24 * 60 * 60 * 1000;
+    const latestCompleted = completed.sort((a, b) => b._creationTime - a._creationTime)[0];
     return [
-      ...completed.filter((c) => c.completedAt !== undefined && c.completedAt <= cutoffMs),
+      ...completed.filter(
+        (c) =>
+          c.completedAt !== undefined &&
+          c.completedAt <= cutoffMs &&
+          c._id !== latestCompleted?._id,
+      ),
       ...failed.filter((c) => c.createdAt <= failedCutoff),
     ].map((c) => ({ _id: c._id, theme: c.theme, status: c.status }));
   },

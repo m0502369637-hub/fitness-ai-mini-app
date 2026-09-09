@@ -1,17 +1,22 @@
 // convex/marketing/crons.ts
 //
-// The Marketing Engine heartbeat. Content drops three times a week —
-// Tuesday, Thursday and Saturday — and Convex cron schedules run in UTC, so
-// the times below are Riyadh (UTC+3) converted:
+// The Marketing Engine heartbeat. Convex cron schedules run in UTC — the times
+// below are Riyadh (UTC+3) converted:
 //
 //   18:00 Riyadh (15:00 UTC)  generateCampaign   (captions -> image -> fal.ai workflow video)
 //   19:00 Riyadh (16:00 UTC)  runDistribution    (Composio external + Telegram broadcast)
 //   24:00 Riyadh (21:00 UTC)  cleanupOldAssets   (delete storage files of campaigns completed >24h ago)
 //
-// Convex has no weekday filter, so generate/distribute still fire daily but
-// pass `respectSchedule: true`; the actions check the marketing-day calendar
-// (convex/marketing/schedule.ts) and no-op on every other day. Cleanup is pure
-// storage hygiene and keeps running daily.
+// Money-saving split:
+//   - GENERATION costs money (HF + fal.ai credits) → only Tue/Thu/Sat. Convex
+//     has no weekday filter, so the cron fires daily and the action checks the
+//     marketing-day calendar (convex/marketing/schedule.ts) and no-ops on
+//     other days.
+//   - DISTRIBUTION is free (Composio + Telegram) → every day. On days without
+//     a fresh campaign the distributor repurposes the latest completed one:
+//     same image/video, platform-native captions with a rotating Arabic hook
+//     prefix so consecutive posts differ.
+// Cleanup is pure storage hygiene and keeps running daily.
 //
 // Convex looks for the crons export in convex/crons.ts (repo root), so the
 // root file simply re-exports this module.
@@ -35,7 +40,7 @@ crons.daily(
   "marketing-distribute-campaign",
   { hourUTC: 16, minuteUTC: 0 },
   api.marketing.distributor.runDistribution,
-  { respectSchedule: true },
+  { repurpose: true },
 );
 
 crons.daily(

@@ -250,28 +250,39 @@ automatically.
 - For each: `ctx.storage.delete(storageId)` for the image and video, then the
   asset rows are marked `deletedAt` (unmarked rows are retried the next night).
 - `failed` campaigns (broken generation) are swept after 48h.
-- Keeps storage usage bounded: only `queued`/`generating`/`ready`/recently
-  completed assets are retained.
+- The **newest completed campaign is exempt**: it is the source material for
+  the daily repurposing posts, so its assets are kept until a newer campaign
+  supersedes it.
+- Keeps storage usage bounded: only `queued`/`generating`/`ready`, recently
+  completed campaigns and the active repurpose source are retained.
 
 ---
 
-## 7. Schedule — three drops a week (Tue / Thu / Sat)
+## 7. Schedule — generation 3×/week, distribution every day
+
+Generation costs money (HF + fal.ai credits), so it runs **three times a week
+(Tue/Thu/Sat)**. Distribution is free (Composio + Telegram), so it runs
+**every day**: on days without a fresh campaign the distributor **repurposes**
+the latest completed one — same image/video, platform-native captions with a
+rotating Arabic hook prefix (`🚀 جاهز تبدأ؟` / `💪 اليوم أفضل وقت` / …) so
+consecutive posts differ.
 
 | Day (Riyadh, UTC+3) | Time (Riyadh) | Time (UTC) | Job | Function |
 | --- | --- | --- | --- | --- |
-| Tue · Thu · Sat | 18:00 | 15:00 | Generate | `marketing.generator.generateCampaign` |
-| Tue · Thu · Sat | 19:00 | 16:00 | Distribute | `marketing.distributor.runDistribution` |
-| **Every day** | 24:00 | 21:00 | Cleanup | `marketing.cleaner.cleanupOldAssets` |
+| **Tue · Thu · Sat** | 18:00 | 15:00 | Generate | `marketing.generator.generateCampaign` |
+| **Every day** | 19:00 | 16:00 | Distribute | `marketing.distributor.runDistribution` (fresh campaign, or repurpose of the latest completed one) |
+| **Every day** | 24:00 | 21:00 | Cleanup | `marketing.cleaner.cleanupOldAssets` (the newest completed campaign is exempt — it is the repurpose source) |
 
-Convex's cron scheduler has no weekday filter, so generate/distribute are
-registered as daily jobs that pass `respectSchedule: true`; the actions check
-the marketing-day calendar (`convex/marketing/schedule.ts` — Riyadh weekday) and
-no-op on any other day. Cleanup is pure storage hygiene and keeps its daily
-sweep. Manual triggers ignore the calendar and run any day:
+Convex's cron scheduler has no weekday filter, so the generation cron is
+registered daily and passes `respectSchedule: true`; the action checks the
+marketing-day calendar (`convex/marketing/schedule.ts` — Riyadh weekday) and
+no-ops on other days. The distribution cron passes `repurpose: true`. Manual
+triggers ignore the calendar and run any day:
 
 ```bash
-npx convex run marketing/generator:generateCampaign '{theme:"30-day challenge", topic:"home workouts", brandColor:"#d7f26d"}' --prod
-npx convex run marketing/distributor:runDistribution '{}' --prod
+npx convex run marketing/generator:generateCampaign '{}' --prod
+npx convex run marketing/distributor:runDistribution '{}' --prod               # latest ready campaign
+npx convex run marketing/distributor:runDistribution '{repurpose:true}' --prod # force daily repurpose
 npx convex run marketing/cleaner:cleanupOldAssets '{}' --prod
 ```
 
