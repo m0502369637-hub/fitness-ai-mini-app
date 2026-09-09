@@ -24,6 +24,7 @@ import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Doc, Id } from "../_generated/dataModel";
 import { bytesToBase64 } from "../lib/models";
+import { isMarketingDay } from "./schedule";
 
 const COMPOSIO_BASE = "https://backend.composio.dev";
 const COMPOSIO_EXECUTE_PATH = "/api/v3.1/tools/execute/";
@@ -50,7 +51,7 @@ type TelegramStats = ChannelOutcome & { total: number; sent: number; failed: num
 
 type DistributionResult =
   | { ok: true; campaignId: Id<"marketingCampaigns">; results: Record<string, ChannelOutcome>; telegram: TelegramStats }
-  | { ok: false; reason: "MARKETING_DISABLED" | "NO_READY_CAMPAIGN" | "ALREADY_DISTRIBUTING" | "ALL_CHANNELS_FAILED" };
+  | { ok: false; reason: "MARKETING_DISABLED" | "NOT_MARKETING_DAY" | "NO_READY_CAMPAIGN" | "ALREADY_DISTRIBUTING" | "ALL_CHANNELS_FAILED" };
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -439,10 +440,18 @@ export const runDistribution = action({
     // Re-post a campaign that already finished (e.g. retry failed channels
     // without regenerating the assets).
     force: v.optional(v.boolean()),
+    // When set by the daily cron, distribution only runs on marketing days
+    // (Tue/Thu/Sat Riyadh). Manual runs leave it unset and always execute.
+    respectSchedule: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<DistributionResult> => {
     if (process.env.MARKETING_ENABLED !== "true") {
       return { ok: false, reason: "MARKETING_DISABLED" };
+    }
+    // Three drops a week: Tue / Thu / Sat (Riyadh). The cron fires daily and
+    // passes respectSchedule so other days become a no-op.
+    if (args.respectSchedule && !isMarketingDay()) {
+      return { ok: false, reason: "NOT_MARKETING_DAY" };
     }
 
     const campaign = args.campaignId

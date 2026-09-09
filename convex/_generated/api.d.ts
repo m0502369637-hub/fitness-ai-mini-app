@@ -24,6 +24,7 @@ import type * as marketing_crons from "../marketing/crons.js";
 import type * as marketing_distributor from "../marketing/distributor.js";
 import type * as marketing_generator from "../marketing/generator.js";
 import type * as marketing_internals from "../marketing/internals.js";
+import type * as marketing_schedule from "../marketing/schedule.js";
 import type * as packages from "../packages.js";
 import type * as payments from "../payments.js";
 import type * as points from "../points.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   "marketing/distributor": typeof marketing_distributor;
   "marketing/generator": typeof marketing_generator;
   "marketing/internals": typeof marketing_internals;
+  "marketing/schedule": typeof marketing_schedule;
   packages: typeof packages;
   payments: typeof payments;
   points: typeof points;

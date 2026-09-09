@@ -2,16 +2,17 @@
 
 This document is the single source of truth for the **Autonomous Marketing OS**
 (`convex/marketing/`). It lists every AI prompt the engine sends, the model
-configuration, the required environment variables, and the daily schedule.
+configuration, the required environment variables, and the schedule.
 
 ```
 convex/marketing/
 ├── schema.ts      # tables merged into the app schema (campaigns/assets/logs/distributions)
 ├── internals.ts   # internal mutations/queries (actions can't touch the DB directly)
-├── generator.ts   # HF: text -> image -> video, saves to Convex File Storage
-├── distributor.ts # Composio (X/LinkedIn/Instagram/TikTok) + Telegram Bot API broadcast
+├── generator.ts   # captions (HF/DeepSeek) + image (HF) + video (fal.ai workflow)
+├── distributor.ts # Composio (X/LinkedIn/Instagram/Facebook) + Telegram Bot API broadcast
 ├── cleaner.ts     # deletes stored files 24h after a campaign completes
-├── crons.ts       # 18:00 generate / 19:00 distribute / 24:00 cleanup (Riyadh)
+├── crons.ts       # 18:00 generate / 19:00 distribute / 24:00 cleanup — drops on Tue/Thu/Sat
+├── schedule.ts    # marketing-day calendar (Tue/Thu/Sat, Riyadh) + day-of-week guard
 └── PROMPTS.md     # this file
 ```
 
@@ -22,11 +23,11 @@ reads the crons config from the root path.
 
 ## 1. Models
 
-| Stage | Model | Env override |
+| Stage | Model / provider | Env override |
 | --- | --- | --- |
-| Text (captions) | `meta-llama/Llama-3.1-8B-Instruct` (auto-routed) | `MARKETING_TEXT_MODEL` |
-| Image | `stabilityai/stable-diffusion-3-medium-diffusers` | `MARKETING_IMAGE_MODEL` |
-| Video | `Lightricks/LTX-Video-0.9.7-distilled` | `MARKETING_VIDEO_MODEL` |
+| Text (captions) | `meta-llama/Llama-3.1-8B-Instruct` (HF Router, auto-routed) → DeepSeek fallback | `MARKETING_TEXT_MODEL` |
+| Image | `stabilityai/stable-diffusion-3-medium-diffusers` (HF Inference provider) | `MARKETING_IMAGE_MODEL` |
+| Video | fal.ai workflow `kling-multi-shot-creator` (**prompt-only, no image input**) | `FAL_WORKFLOW_ENDPOINT` |
 
 > ⚠️ HF retired the legacy serverless API (`api-inference.huggingface.co`,
 > 410 Gone, late 2025). All calls now go through the **router**:
@@ -35,18 +36,15 @@ reads the crons config from the root path.
 >   with `{ model, messages, max_tokens }`; the router auto-selects the provider.
 > - **Image** — `POST https://router.huggingface.co/hf-inference/models/{model}`
 >   (HF Inference provider catalog; free-credit billed).
-> - **Video** — the HF Inference provider does **not** serve video models in the
->   current catalog. To enable the video step, add a third-party provider key
->   (fal-ai / replicate / wavespeed) in your HF Inference Provider settings and
->   pin it via `MARKETING_VIDEO_MODEL=<model>:<provider>`. Until then the video
->   step logs its failure and the campaign proceeds with captions + image.
->
-> The token must be a fine-grained token with the **"Make calls to Inference
-> Providers"** permission. The original spec models (`meta-llama/Llama-3-8B-Instruct`,
-> `black-forest-labs/FLUX.1-schnell`, `stabilityai/stable-video-diffusion-img2vid-xt`)
-> are retired upstream; the ids above are their current-generation replacements.
+> - **Video** — no longer generated through HF at all. It comes from the fal.ai
+>   workflow endpoint below, which takes only a prompt and returns a finished clip.
 
-All calls use the standard `Authorization: Bearer <HF_API_TOKEN>` header and
+The token must be a fine-grained token with the **"Make calls to Inference
+Providers"** permission. The original spec models (`meta-llama/Llama-3-8B-Instruct`,
+`black-forest-labs/FLUX.1-schnell`, `stabilityai/stable-video-diffusion-img2vid-xt`)
+are retired upstream; the ids above are their current-generation replacements.
+
+All HF calls use the standard `Authorization: Bearer <HF_API_TOKEN>` header and
 `x-wait-for-model: true` (blocks until the model is loaded instead of returning
 503). 429/503/5xx, timeouts and network errors are retried with exponential
 backoff.
@@ -55,10 +53,6 @@ backoff.
 catalog gap, network), the engine transparently retries the same prompt with
 the app's DeepSeek model (`DEEPSEEK_API_KEY` + `deepseek-v4-flash`), so caption
 generation keeps working. Disable with `MARKETING_TEXT_FALLBACK=off`.
-
-The video stage receives the **generated image itself** as a base64 data URL
-(`data:image/jpeg;base64,...`). HF cannot download from Convex storage ids, so
-the raw image bytes are passed directly — never a storageId.
 
 ---
 
@@ -142,27 +136,60 @@ the engine stores them with `ctx.storage.store()` and records both the
 
 ---
 
-## 4. Video prompt
+## 4. Video prompt (fal.ai workflow)
 
-The video stage is **image-to-video**: the input is the image generated in
-step 3. Two attempts, in order:
+The video stage is a **single fal.ai workflow call**. The endpoint takes
+**only a `prompt`** — no image input, no duration, no other parameters:
 
-1. **Hugging Face router** — model id from `MARKETING_VIDEO_MODEL`, image passed
-   as a base64 data URL (`{inputs: dataUrl}` / `{inputs: {image: dataUrl}}`).
-2. **fal-ai fallback (Seedance)** — `fal-ai/bytedance/seedance/v1/pro/image-to-video`
-   via the fal queue API (`https://queue.fal.run/<endpoint>`):
-   submit `{ prompt, image_url, duration: "5s" }` → poll the request status →
-   download `data.video.url`. Requires `FAL_API_KEY` (free credits on signup at
-   fal.ai); override with `FAL_VIDEO_ENDPOINT` / `FAL_VIDEO_DURATION`.
+```
+POST https://fal.run/workflows/m0502369637-hub/kling-multi-shot-creator/stream
+Authorization: Key <FAL_API_KEY>
+Content-Type: application/json
 
-```text
-prompt: "Slow cinematic camera push-in on the athlete, subtle dynamic movement,
-         dramatic rim light, professional fitness advertisement style,
-         <theme>, <topic>, no text, no watermark"
+{ "prompt": "<videoMarketingPrompt>" }
 ```
 
-If both attempts fail, the step logs the combined error and the campaign
-continues with captions + image.
+The workflow streams progress events (NDJSON / SSE-style `data:` lines) and the
+engine scans the stream for the finished video URL, then downloads and stores
+it in Convex File Storage like every other asset. Override the endpoint with
+`FAL_WORKFLOW_ENDPOINT`; the wait budget is 9 minutes (`FAL_WORKFLOW_TIMEOUT_MS`,
+capped by Convex's action timeout).
+
+### The marketing angle (the point of the clip)
+
+The clip must **market FitAI itself — its value proposition — not a gym promo
+or a workout demonstration**. Each campaign draws one angle from a rotating
+pool of pain→value pairs ("mix for marketing"), so consecutive drops stay
+fresh. The pool:
+
+| # | Pain (story opening) | Value (resolution — what FitAI delivers) |
+| --- | --- | --- |
+| 1 | Busy professional, no time for the gym | Personal plan in minutes, fits any schedule, inside Telegram |
+| 2 | Generic one-size-fits-all plans never work | Plan built from your goal, level and timeline, adapted by AI |
+| 3 | Trainers and memberships are too expensive | An AI coach in your pocket for a fraction of the cost |
+| 4 | Motivation dies after week one | Streaks + progress charts keep you going |
+| 5 | Beginners don't know which exercises to do | Step-by-step images and instructions for every exercise |
+| 6 | Training without knowing if you're improving | Day/week/month progress analytics |
+
+### Assembled prompt
+
+```text
+Vertical 9:16 marketing video for FitAI, an AI-powered fitness coach mini app
+on Telegram that builds personalized workout plans, tracks daily progress and
+costs less than a gym membership.
+Story: <pain>.
+Then show the resolution — <value>.
+Campaign topic: <topic>. Campaign theme: <theme>.
+Visual style: cinematic, high-energy, moody dark background with lime-chartreuse
+#d7f26d accents, a hand holding a phone with the app open, modern and
+aspirational, fast-paced cuts, realistic people.
+This is app marketing, not a gym promo: show the lifestyle pain turning into
+relief through the app — do not show a generic gym workout demonstration.
+No text, no captions, no watermark, no logos in the frame.
+```
+
+If the workflow fails, the step logs the error and the campaign continues with
+captions + image (the Instagram Reel then falls back to the image).
 
 ---
 
@@ -218,16 +245,19 @@ automatically.
 
 ---
 
-## 7. Schedule
+## 7. Schedule — three drops a week (Tue / Thu / Sat)
 
-| Time (Riyadh, UTC+3) | Time (UTC) | Job | Function |
-| --- | --- | --- | --- |
-| 18:00 | 15:00 | Generate | `marketing.generator.generateCampaign` |
-| 19:00 | 16:00 | Distribute | `marketing.distributor.runDistribution` |
-| 24:00 | 21:00 | Cleanup | `marketing.cleaner.cleanupOldAssets` |
+| Day (Riyadh, UTC+3) | Time (Riyadh) | Time (UTC) | Job | Function |
+| --- | --- | --- | --- | --- |
+| Tue · Thu · Sat | 18:00 | 15:00 | Generate | `marketing.generator.generateCampaign` |
+| Tue · Thu · Sat | 19:00 | 16:00 | Distribute | `marketing.distributor.runDistribution` |
+| **Every day** | 24:00 | 21:00 | Cleanup | `marketing.cleaner.cleanupOldAssets` |
 
-Cron schedules are configured in UTC (`hourUTC`). Jobs can also be triggered
-manually:
+Convex's cron scheduler has no weekday filter, so generate/distribute are
+registered as daily jobs that pass `respectSchedule: true`; the actions check
+the marketing-day calendar (`convex/marketing/schedule.ts` — Riyadh weekday) and
+no-op on any other day. Cleanup is pure storage hygiene and keeps its daily
+sweep. Manual triggers ignore the calendar and run any day:
 
 ```bash
 npx convex run marketing/generator:generateCampaign '{theme:"30-day challenge", topic:"home workouts", brandColor:"#d7f26d"}' --prod
@@ -247,9 +277,11 @@ npx convex run marketing/cleaner:cleanupOldAssets '{}' --prod
 | `MARKETING_ENABLED` | master switch — must be exactly `"true"` or the engine stays dormant |
 | `COMPOSIO_CONNECTED_ACCOUNT_ID_X` / `_FACEBOOK` / `_LINKEDIN` / `_INSTAGRAM` | per-platform connected accounts |
 | `COMPOSIO_FACEBOOK_PAGE_ID` / `COMPOSIO_INSTAGRAM_IG_USER_ID` / `COMPOSIO_LINKEDIN_AUTHOR` | account ids the posting tools need |
-| `FAL_API_KEY` (optional) | fal-ai Seedance video fallback (free key at fal.ai) |
+| `FAL_API_KEY` | fal.ai — powers the video workflow (`kling-multi-shot-creator`) |
+| `FAL_WORKFLOW_ENDPOINT` (optional) | override the video workflow URL (default: `https://fal.run/workflows/m0502369637-hub/kling-multi-shot-creator/stream`) |
+| `FAL_WORKFLOW_TIMEOUT_MS` (optional) | max wait for the workflow stream in ms (default: 540000 = 9 min) |
 | `COMPOSIO_ACTION_*` (optional) | override default tool slugs |
-| `MARKETING_TEXT_MODEL` / `MARKETING_IMAGE_MODEL` / `MARKETING_VIDEO_MODEL` (optional) | model overrides |
+| `MARKETING_TEXT_MODEL` / `MARKETING_IMAGE_MODEL` (optional) | HF model overrides |
 | `MARKETING_THEME` / `MARKETING_TOPIC` / `MARKETING_BRAND_COLOR` (optional) | defaults for the 18:00 cron run |
 | `APP_URL` (optional) | app link in every caption + Telegram messages (default: https://t.me/FitAI_Training_bot) |
 
